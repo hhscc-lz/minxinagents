@@ -52,49 +52,47 @@
 
 ## 数据访问
 
-可用数据库为 MySQL，连接信息在环境变量中：
+可用数据库为 SQL Server，连接信息在环境变量中：
 
 ```python
-import os, pymysql, pandas as pd
+import os, pymssql, pandas as pd
 
-conn = pymysql.connect(
-    host=os.environ["DB_HOST"],
+conn = pymssql.connect(
+    server=os.environ["DB_HOST"],
     user=os.environ["DB_USER"],
     password=os.environ["DB_PASS"],
-    database=os.environ["DB_NAME"],
-    charset="utf8mb4"
+    database=os.environ["DB_NAME"]
 )
 df = pd.read_sql("你的SQL", conn)
 conn.close()
 ```
 
-### 工单主表：complaints
+### 工单主表：t_mxsq
 
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 自增主键 |
-| ticket_no | VARCHAR(64) | 工单编号 |
-| created_at | DATETIME | 工单创建时间 |
-| completed_at | DATETIME | 办结时间，未办结为 NULL |
-| deadline_at | DATETIME | 要求办结期限 |
-| source | VARCHAR(64) | 来源渠道，如：12345、12333、网络平台 |
-| category_lv1 | VARCHAR(64) | 一级分类，如：城市管理 |
-| category_lv2 | VARCHAR(64) | 二级分类，如：噪音扰民 |
-| category_lv3 | VARCHAR(64) | 三级分类，如：建筑施工噪音 |
-| title | VARCHAR(512) | 诉求标题 |
-| content | TEXT | 诉求原文 |
-| city | VARCHAR(64) | 城市，如：长春市 |
-| district | VARCHAR(64) | 区县，如：南关区 |
-| community | VARCHAR(128) | 小区/社区，可为空 |
-| address | VARCHAR(512) | 详细地址，可为空 |
-| department | VARCHAR(128) | 承办部门 |
-| handling_type | VARCHAR(64) | 办理方式，可能值如：直接回复件、直办件、社企件等，不固定 |
-| status | VARCHAR(32) | 办理状态：办理中、已办结 |
-| process_days | INT | 实际办理天数 |
-| is_overdue | TINYINT(1) | 是否超期：1=是，0=否 |
-| reply | TEXT | 承办部门答复内容 |
-| visited_at | DATETIME | 回访时间 |
-| satisfaction | VARCHAR(16) | 满意度：非常满意、满意、理解、不满意、非常不满意，NULL=无反馈 |
+| 字段 | 说明 |
+|------|------|
+| oriid | 诉求编号（工单唯一标识） |
+| tsly | 投诉来源（来源渠道） |
+| by_area | 城市 |
+| by_qx | 区县 |
+| ai_xiaoqu | 小区 |
+| mpeach_date | 诉求时间（工单创建时间） |
+| mpeach_text | 诉求标题 |
+| mpeach_gut | 诉求内容（诉求原文） |
+| mpeach_dx | 一级定性（一级分类） |
+| mpeach_wtlb | 二级定性（二级分类） |
+| mpeach_wtxl | 三级定性（三级分类） |
+| aj_blzt | 案件办理状态（= 50 表示已办结，其余值表示未办结） |
+| sqxz | 诉求性质（投诉 / 咨询 / 意见建议） |
+| blfs | 办理方式（直接回复件、一般直办件等） |
+| jjqk | 部门解决情况（承办部门答复内容） |
+| bl_bmmc | 办理部门（承办部门名称） |
+| bj_date | 办结时间（未办结时为 NULL） |
+| fenpai_date | 分派时间 |
+| niban_date | 拟办时间 |
+| pingxing_date | 诉求人评价时间 |
+| manyidu | 诉求人评价满意度 |
+| tui_num | 退件次数 |
 
 ### 数据使用规则
 

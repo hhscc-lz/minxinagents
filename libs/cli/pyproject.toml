@@ -30,12 +30,10 @@ dependencies = [
     "langchain>=1.2.10,<2.0.0",
     "langgraph>=1.1.2,<2.0.0",
     "langgraph-checkpoint-sqlite>=3.0.0,<4.0.0",
-
     # Client-server architecture
     "langgraph-sdk>=0.3.11,<1.0.0",
     "langgraph-cli[inmem]>=0.4.15,<1.0.0",
     "httpx>=0.28.1,<1.0.0",
-
     # Require at least one integration package
     "langchain-openai>=1.1.8,<2.0.0",
     # UI/Terminal
@@ -68,6 +66,8 @@ dependencies = [
     "pandas>=2.3.3",
     "pymysql>=1.1.2",
     "httpx[socks]>=0.28.1",
+    "pymssql>=2.3.13",
+    "openpyxl>=3.1.5",
 ]
 
 [project.optional-dependencies]
