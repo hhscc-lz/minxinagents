@@ -1,11 +1,12 @@
 FROM langchain/langgraph-api:3.11
 
 
-COPY ./validation.cpython-311.pyc /api/langgraph_license/validation.pyc
+COPY libs/cli/validation.cpython-311.pyc /api/langgraph_license/validation.pyc
 
-# -- Adding local package . --
-ADD . /deps/cli
-# -- End of local package . --
+# -- Adding local packages from monorepo --
+COPY libs/cli /deps/cli
+COPY libs/deepagents /deps/deepagents
+# -- End of local package copy --
 
 # -- Installing all local dependencies --
 RUN for dep in /deps/*; do             echo "Installing $dep";             if [ -d "$dep" ]; then                 echo "Installing $dep";                 (cd "$dep" && PYTHONDONTWRITEBYTECODE=1 uv pip install --system --no-cache-dir -c /api/constraints.txt -e .);             fi;         done
@@ -28,4 +29,4 @@ WORKDIR /deps/cli
 
 EXPOSE 8000
 
-CMD ["python", "textual_run.py"]
+ENTRYPOINT ["python", "textual_run.py"]
