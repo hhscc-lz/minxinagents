@@ -1,0 +1,16 @@
+# Build linux/amd64 image tar on macOS
+
+docker buildx build \
+--platform linux/amd64 \
+-f libs/cli/Dockerfile \
+-t minxinagent:v0.0.1 \
+--output type=docker,dest=./minxinagent-0.0.1-linux-amd64.tar \
+.
+
+# Linux server deploy
+
+docker load -i minxinagent-0.0.1-linux-amd64.tar
+cp libs/cli/.env.example libs/cli/.env
+cd libs/cli && docker compose up -d
+
+docker compose up -d --force-recreate
