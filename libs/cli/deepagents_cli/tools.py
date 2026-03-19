@@ -239,9 +239,9 @@ def fetch_url(url: str, timeout: int = 30) -> dict[str, Any]:
 def export_data(sql: str) -> dict[str, Any]:
     """Execute a SQL query and export the result set to object storage.
 
-    This tool runs the given SELECT statement, writes the results to a CSV file,
+    This tool runs the given SELECT statement, writes the results to an Excel file,
     and uploads it to the configured object storage (MinIO).  The caller receives
-    a pre-signed download URL.
+    a pre-signed download URL valid for 12 hours.
 
     Use this tool when the user asks to export, download, or save query results
     — for example detail records filtered by region, date range, or status.
@@ -252,19 +252,81 @@ def export_data(sql: str) -> dict[str, Any]:
     Returns:
         Dictionary containing:
         - success: Whether the export completed successfully
-        - url: Pre-signed download URL for the exported file
+        - url: Pre-signed download URL for the exported file (valid 12 hours)
 
     IMPORTANT: After using this tool:
     1. Present the returned URL to the user as a download link
     2. If the export failed, relay the error message to the user
     """
+    import io
+    import os
     import uuid
-    from datetime import datetime
+    from datetime import timedelta
 
-    # TODO: execute SQL and upload to MinIO
-    file_name = f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.csv"
+    import pandas as pd
+    import pymssql
+    from minio import Minio
 
-    return {
-        "success": True,
-        "url": f"http://minio.example.com/data-exports/{file_name}",
-    }
+    _MINIO_INTERNAL = "172.17.3.61:8882"
+    _MINIO_PUBLIC = "202.97.181.107:8882"
+    _BUCKET = "minxinagent"
+
+    try:
+        # 1. Execute SQL and load into DataFrame
+        conn = pymssql.connect(
+            server=os.environ["DB_HOST"],
+            user=os.environ["DB_USER"],
+            password=os.environ["DB_PASS"],
+            database=os.environ["DB_NAME"],
+        )
+        try:
+            df = pd.read_sql(sql, conn)
+        finally:
+            conn.close()
+
+        # 2. Write DataFrame to Excel in memory (no temp file on disk)
+        buffer = io.BytesIO()
+        df.to_excel(buffer, index=False, engine="openpyxl")
+        buffer.seek(0)
+        file_size = buffer.getbuffer().nbytes
+
+        # 3. Upload to MinIO via internal address
+        object_name = (
+            f"exports/{pd.Timestamp.now().strftime('%Y%m%d')}/"
+            f"{uuid.uuid4().hex[:12]}.xlsx"
+        )
+        client = Minio(
+            _MINIO_INTERNAL,
+            access_key=os.environ["MINIO_ROOT_USER"],
+            secret_key=os.environ["MINIO_ROOT_PASSWORD"],
+            secure=False,
+        )
+        client.put_object(
+            _BUCKET,
+            object_name,
+            buffer,
+            length=file_size,
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+        )
+
+        # 4. Generate presigned URL using public-facing client so the signature
+        #    is computed against the public host (replacing the host after signing
+        #    would invalidate the signature).
+        public_client = Minio(
+            _MINIO_PUBLIC,
+            access_key=os.environ["MINIO_ROOT_USER"],
+            secret_key=os.environ["MINIO_ROOT_PASSWORD"],
+            secure=False,
+        )
+        public_url = public_client.presigned_get_object(
+            _BUCKET,
+            object_name,
+            expires=timedelta(hours=12),
+        )
+
+        return {"success": True, "url": public_url}
+
+    except Exception as e:  # noqa: BLE001
+        return {"success": False, "url": "", "error": str(e)}

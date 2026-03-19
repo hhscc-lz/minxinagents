@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from typing import TYPE_CHECKING, Any
 
 from rich.style import Style
@@ -15,11 +14,7 @@ if TYPE_CHECKING:
 from deepagents_cli.config import (
     COLORS,
     _is_editable_install,
-    fetch_langsmith_project_url,
     get_banner,
-    get_glyphs,
-    get_langsmith_project_name,
-    newline_shortcut,
 )
 from deepagents_cli.widgets._links import open_style_link
 
@@ -36,8 +31,11 @@ class WelcomeBanner(Static):
     DEFAULT_CSS = """
     WelcomeBanner {
         height: auto;
-        padding: 1;
+        padding: 1 2;
         margin-bottom: 1;
+        background: #0b151b;
+        border: solid #1d3b37;
+        color: #d7efe9;
     }
     """
 
@@ -64,30 +62,11 @@ class WelcomeBanner(Static):
         self._connecting = connecting
         self._failed = False
         self._failure_error: str = ""
-        self._project_name: str | None = get_langsmith_project_name()
-        self._project_url: str | None = None
 
         super().__init__(self._build_banner(), **kwargs)
 
     def on_mount(self) -> None:
-        """Kick off background fetch for LangSmith project URL."""
-        if self._project_name:
-            self.run_worker(self._fetch_and_update, exclusive=True)
-
-    async def _fetch_and_update(self) -> None:
-        """Fetch the LangSmith URL in a thread and update the banner."""
-        if not self._project_name:
-            return
-        try:
-            project_url = await asyncio.wait_for(
-                asyncio.to_thread(fetch_langsmith_project_url, self._project_name),
-                timeout=2.0,
-            )
-        except (TimeoutError, OSError):
-            project_url = None
-        if project_url:
-            self._project_url = project_url
-            self.update(self._build_banner(project_url))
+        """No-op mount hook for symmetry with other widgets."""
 
     def update_thread_id(self, thread_id: str) -> None:
         """Update the displayed thread ID and re-render the banner.
@@ -96,7 +75,7 @@ class WelcomeBanner(Static):
             thread_id: The new thread ID to display.
         """
         self._cli_thread_id = thread_id
-        self.update(self._build_banner(self._project_url))
+        self.update(self._build_banner())
 
     def set_connected(self, mcp_tool_count: int = 0) -> None:
         """Transition from "connecting" to "ready" state.
@@ -107,7 +86,7 @@ class WelcomeBanner(Static):
         self._connecting = False
         self._failed = False
         self._mcp_tool_count = mcp_tool_count
-        self.update(self._build_banner(self._project_url))
+        self.update(self._build_banner())
 
     def set_failed(self, error: str) -> None:
         """Transition from "connecting" to a persistent failure state.
@@ -118,7 +97,7 @@ class WelcomeBanner(Static):
         self._connecting = False
         self._failed = True
         self._failure_error = error
-        self.update(self._build_banner(self._project_url))
+        self.update(self._build_banner())
 
     def on_click(self, event: Click) -> None:  # noqa: PLR6301  # Textual event handler
         """Open Rich-style hyperlinks on single click."""
@@ -127,57 +106,19 @@ class WelcomeBanner(Static):
     def _build_banner(self, project_url: str | None = None) -> Text:
         """Build the banner rich text.
 
-        When a `project_url` is provided and a thread ID is set, the thread ID
-        is rendered as a clickable hyperlink to the LangSmith thread view.
-
         Args:
-            project_url: LangSmith project URL used for linking the project
-                name and thread ID. When `None`, text is rendered without links.
+            project_url: Unused legacy parameter kept for compatibility.
 
         Returns:
             Rich Text object containing the formatted banner.
         """
+        del project_url
         banner = Text()
         # Use orange for local, green for production
         banner_color = (
             COLORS["primary_dev"] if _is_editable_install() else COLORS["primary"]
         )
         banner.append(get_banner() + "\n", style=Style(bold=True, color=banner_color))
-
-        if self._project_name:
-            banner.append(f"{get_glyphs().checkmark} ", style="green")
-            banner.append("LangSmith 追踪：")
-            if project_url:
-                banner.append(
-                    f"'{self._project_name}'",
-                    style=Style(
-                        color="cyan",
-                        link=f"{project_url}?utm_source=deepagents-cli",
-                    ),
-                )
-            else:
-                banner.append(f"'{self._project_name}'", style="cyan")
-            banner.append("\n")
-
-        if self._cli_thread_id:
-            if project_url:
-                thread_url = (
-                    f"{project_url.rstrip('/')}/t/{self._cli_thread_id}"
-                    "?utm_source=deepagents-cli"
-                )
-                thread_line = Text.assemble(
-                    ("会话：", "dim"),
-                    (self._cli_thread_id, Style(dim=True, link=thread_url)),
-                    ("\n", "dim"),
-                )
-                banner.append_text(thread_line)
-            else:
-                banner.append(f"会话：{self._cli_thread_id}\n", style="dim")
-
-        if self._mcp_tool_count > 0:
-            banner.append(f"{get_glyphs().checkmark} ", style="green")
-            label = "个 MCP 工具"
-            banner.append(f"已加载 {self._mcp_tool_count} {label}\n")
 
         if self._failed:
             banner.append_text(build_failure_footer(self._failure_error))
@@ -198,7 +139,7 @@ def build_failure_footer(error: str) -> Text:
         Rich Text with a persistent failure message.
     """
     footer = Text()
-    footer.append("\nServer failed to start: ", style="bold red")
+    footer.append("\n加载失败：", style="bold red")
     footer.append(error, style="red")
     footer.append("\n", style="red")
     return footer
@@ -211,15 +152,15 @@ def build_connecting_footer() -> Text:
         Rich Text with a connecting status message.
     """
     footer = Text()
-    footer.append("\nConnecting to server...\n", style="dim")
+    footer.append("\n加载中...\n", style="dim")
     return footer
 
 
 def build_welcome_footer() -> Text:
-    """Build the two-line footer shown at the bottom of the welcome banner.
+    """Build the footer shown at the bottom of the welcome banner.
 
     Returns:
-        Rich Text with the ready prompt and keyboard shortcut help line.
+        Rich Text with the ready prompt.
     """
     footer = Text()
     footer.append(

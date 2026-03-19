@@ -4,6 +4,8 @@
 Screen {
     layout: vertical;
     layers: base autocomplete;
+    background: #061017;
+    color: #d7efe9;
 }
 
 /* Main content goes on base layer by default */
@@ -11,8 +13,8 @@ Screen {
 /* Chat area - main scrollable messages area */
 #chat {
     height: 1fr;
-    padding: 1 2;
-    background: $background;
+    padding: 1 3;
+    background: #061017;
 }
 
 /* Welcome banner */
@@ -30,7 +32,16 @@ Screen {
 #bottom-app-container {
     height: auto;
     margin-top: 1;
-    padding: 0 1;
+    padding: 0 3 1 3;
+    background: #061017;
+}
+
+#input-shortcut-hint {
+    height: 1;
+    width: 100%;
+    content-align: right middle;
+    padding: 0 1 0 0;
+    color: #6f8792;
 }
 
 /* Input area */
@@ -88,7 +99,7 @@ Screen {
 #status-bar {
     height: 1;
     dock: bottom;
-    margin-bottom: 1;
+    margin-bottom: 0;
 }
 
 /* Tool approval widgets */
@@ -168,55 +179,70 @@ Screen {
 .ask-user-menu {
     height: auto;
     margin: 1 0;
-    padding: 0 1;
-    background: $surface;
-    border: solid $success;
+    padding: 1 2;
+    background: #0d1514;
+    border: solid #1c433b;
 }
 
 .ask-user-menu .ask-user-title {
     text-style: bold;
-    color: $success;
-    margin-bottom: 0;
+    color: #86efac;
+    background: #10211d;
+    padding: 0 1;
+    margin-bottom: 1;
 }
 
 .ask-user-menu .ask-user-help {
-    color: $text-muted;
+    color: #7fa29b;
     text-style: italic;
-    margin-top: 0;
+    margin-top: 1;
     margin-bottom: 0;
 }
 
 .ask-user-menu .ask-user-questions {
     height: auto;
-    padding: 0 1;
+    padding: 0;
 }
 
 .ask-user-menu .ask-user-question {
     height: auto;
     margin-bottom: 1;
+    padding: 1 1 0 1;
+    background: #0a1217;
+    border-left: wide #233640;
 }
 
 .ask-user-menu .ask-user-question-active {
-    border-left: thick $success;
-    padding-left: 1;
+    border-left: wide #22c55e;
+    background: #101915;
 }
 
 .ask-user-menu .ask-user-question-inactive {
-    opacity: 0.5;
-    padding-left: 2;
+    opacity: 0.65;
 }
 
 .ask-user-menu .ask-user-choice {
     height: 1;
-    padding: 0 1;
+    padding: 0 1 0 2;
+    color: #cbd5e1;
+}
+
+.ask-user-menu .ask-user-choice-selected {
+    background: #10211d;
+    color: #dcfce7;
+    text-style: bold;
 }
 
 .ask-user-menu .ask-user-text-input {
-    margin: 1 1 0 1;
+    margin: 1 0 0 1;
+    border: solid #1c433b;
+    background: #081010;
 }
 
 .ask-user-menu .ask-user-other-input {
-    margin: 1 1 0 1;
+    margin: 1 0 0 1;
+    border: solid #1c433b;
+    background: #081010;
 }
 
 /* Completion popup styling (used by ChatInput) - appears BELOW input */
@@ -224,9 +250,10 @@ Screen {
     height: auto;
     max-height: 12;
     width: 100%;
-    margin-left: 3;
+    margin-left: 4;
     margin-top: 0;
     padding: 0;
-    background: $background;
-    color: $text;
+    background: #0a1418;
+    color: #d7efe9;
+    border: solid #1b3942;
 }

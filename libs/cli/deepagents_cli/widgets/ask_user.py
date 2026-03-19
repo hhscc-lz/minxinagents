@@ -235,6 +235,10 @@ class _ChoiceOption(Static):
                 break
         self._label = raw
         prefix = f"{glyphs.cursor} " if self.selected else "  "
+        if self.selected:
+            self.add_class("ask-user-choice-selected")
+        else:
+            self.remove_class("ask-user-choice-selected")
         self.update(f"{prefix}{raw}")
 
 
@@ -281,6 +285,7 @@ class _QuestionWidget(Vertical):
                 cw = _ChoiceOption(f"{prefix}{label}", index=i)
                 if i == 0:
                     cw.selected = True
+                    cw._update_display()
                 self._choice_widgets.append(cw)
                 yield cw
 

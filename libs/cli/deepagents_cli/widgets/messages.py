@@ -110,7 +110,7 @@ class UserMessage(Static):
     DEFAULT_CSS = """
     UserMessage {
         height: auto;
-        padding: 0 1;
+        padding: 0 2;
         margin: 1 0 0 0;
         background: #09141a;
         border-left: wide #2dd4bf;
@@ -195,7 +195,7 @@ class QueuedUserMessage(Static):
     DEFAULT_CSS = """
     QueuedUserMessage {
         height: auto;
-        padding: 0 1;
+        padding: 0 2;
         margin: 1 0 0 0;
         background: transparent;
         border-left: wide #6b7280;
@@ -247,14 +247,14 @@ class AssistantMessage(Vertical):
     DEFAULT_CSS = """
     AssistantMessage {
         height: auto;
-        padding: 0 1;
+        padding: 0 2;
         margin: 1 0 0 0;
-        background: #08131a;
-        border-left: wide #1d3b37;
+        background: transparent;
+        border: none;
     }
 
     AssistantMessage Markdown {
-        padding: 0 1;
+        padding: 0;
         margin: 0;
     }
     """
@@ -355,23 +355,47 @@ class ToolCallMessage(Vertical):
     DEFAULT_CSS = """
     ToolCallMessage {
         height: auto;
-        padding: 0 1;
+        padding: 1 2;
         margin: 1 0 1 0;
         background: #0a1217;
-        border-left: wide #334155;
+        border-left: wide #233640;
+    }
+
+    ToolCallMessage.tool-running {
+        border-left: wide #f59e0b;
+        background: #14110b;
+    }
+
+    ToolCallMessage.tool-success {
+        border-left: wide #2dd4bf;
+        background: #0b1717;
+    }
+
+    ToolCallMessage.tool-error {
+        border-left: wide #ef4444;
+        background: #1b1012;
+    }
+
+    ToolCallMessage.tool-rejected,
+    ToolCallMessage.tool-skipped {
+        border-left: wide #64748b;
+        background: #0f1720;
     }
 
     ToolCallMessage .tool-header {
         height: auto;
+        color: #f8d67a;
+        text-style: bold;
     }
 
     ToolCallMessage .tool-args {
-        color: #94a3b8;
-        margin-left: 3;
+        color: #7f92a8;
+        margin-left: 2;
     }
 
     ToolCallMessage .tool-status {
-        margin-left: 3;
+        margin-left: 2;
+        height: auto;
     }
 
     ToolCallMessage .tool-status.pending {
@@ -392,19 +416,25 @@ class ToolCallMessage(Vertical):
 
     ToolCallMessage .tool-output {
         margin-left: 0;
-        margin-top: 0;
-        padding: 0;
+        margin-top: 1;
+        padding: 0 1;
         height: auto;
+        background: #071017;
+        color: #dbe7e4;
     }
 
     ToolCallMessage .tool-output-preview {
         margin-left: 0;
-        margin-top: 0;
+        margin-top: 1;
+        padding: 0 1;
+        background: #071017;
+        color: #dbe7e4;
     }
 
     ToolCallMessage .tool-output-hint {
         margin-left: 0;
-        color: #94a3b8;
+        margin-top: 0;
+        color: #6f8792;
     }
 
     ToolCallMessage:hover {
@@ -457,7 +487,7 @@ class ToolCallMessage(Vertical):
         """
         tool_label = escape_markup(format_tool_display(self._tool_name, self._args))
         yield Static(
-            f"[bold #f59e0b]{tool_label}[/bold #f59e0b]",
+            f"[bold #f8d67a]{tool_label}[/bold #f8d67a]",
             classes="tool-header",
         )
         # Only show args for tools where header doesn't capture the key info
@@ -485,6 +515,7 @@ class ToolCallMessage(Vertical):
         if _detect_charset_mode() == CharsetMode.ASCII:
             self.styles.border_left = ("ascii", "#3b3b3b")
 
+        self._set_visual_state("idle")
         self._status_widget = self.query_one("#status", Static)
         self._preview_widget = self.query_one("#output-preview", Static)
         self._hint_widget = self.query_one("#output-hint", Static)
@@ -516,10 +547,12 @@ class ToolCallMessage(Vertical):
         match status:
             case "success":
                 self._status = "success"
+                self._set_visual_state("success")
                 self._output = output
                 self._update_output_display()
             case "error":
                 self._status = "error"
+                self._set_visual_state("error")
                 self._output = output
                 if self._status_widget:
                     self._status_widget.add_class("error")
@@ -528,12 +561,14 @@ class ToolCallMessage(Vertical):
                 self._update_output_display()
             case "rejected":
                 self._status = "rejected"
+                self._set_visual_state("rejected")
                 if self._status_widget:
                     self._status_widget.add_class("rejected")
                     self._status_widget.update("[yellow]✗ Rejected[/yellow]")
                     self._status_widget.display = True
             case "skipped":
                 self._status = "skipped"
+                self._set_visual_state("skipped")
                 if self._status_widget:
                     self._status_widget.add_class("rejected")
                     self._status_widget.update("[dim]- Skipped[/dim]")
@@ -542,6 +577,7 @@ class ToolCallMessage(Vertical):
                 # For running tools, show static "Running..." without animation
                 # (animations shouldn't be restored for archived tools)
                 self._status = "running"
+                self._set_visual_state("running")
                 if self._status_widget:
                     self._status_widget.add_class("pending")
                     self._status_widget.update("[yellow]⠿ Running...[/yellow]")
@@ -549,6 +585,18 @@ class ToolCallMessage(Vertical):
             case _:
                 # pending or unknown - leave as default
                 pass
+
+    def _set_visual_state(self, state: str) -> None:
+        """Update widget classes used for state-driven styling."""
+        self.remove_class(
+            "tool-running",
+            "tool-success",
+            "tool-error",
+            "tool-rejected",
+            "tool-skipped",
+        )
+        if state in {"running", "success", "error", "rejected", "skipped"}:
+            self.add_class(f"tool-{state}")
 
     def set_running(self) -> None:
         """Mark the tool as running (approved and executing).
@@ -559,6 +607,7 @@ class ToolCallMessage(Vertical):
             return  # Already running
 
         self._status = "running"
+        self._set_visual_state("running")
         self._start_time = time()
         if self._status_widget:
             self._status_widget.add_class("pending")
@@ -596,6 +645,7 @@ class ToolCallMessage(Vertical):
         """
         self._stop_animation()
         self._status = "success"
+        self._set_visual_state("success")
         # For execute tools, hide raw output (code, stderr, etc.) from end users
         if self._tool_name in {"shell", "bash", "execute", "export_data"}:
             self._output = ""
@@ -615,9 +665,14 @@ class ToolCallMessage(Vertical):
         """
         self._stop_animation()
         self._status = "error"
-        # For shell commands, hide raw traceback from end users
+        self._set_visual_state("error")
+        # Shell-family tools should surface the executed command for context.
         if self._tool_name in {"shell", "bash", "execute", "export_data"}:
-            self._output = "正在分析数据..."
+            command = self._args.get("command")
+            if isinstance(command, str) and command.strip():
+                self._output = f"$ {command}\n{error}"
+            else:
+                self._output = error
         else:
             self._output = error
         if self._status_widget:
@@ -634,6 +689,7 @@ class ToolCallMessage(Vertical):
         """Mark the tool call as rejected by user."""
         self._stop_animation()
         self._status = "rejected"
+        self._set_visual_state("rejected")
         if self._status_widget:
             self._status_widget.remove_class("pending")
             self._status_widget.add_class("rejected")
@@ -645,6 +701,7 @@ class ToolCallMessage(Vertical):
         """Mark the tool call as skipped (due to another rejection)."""
         self._stop_animation()
         self._status = "skipped"
+        self._set_visual_state("skipped")
         if self._status_widget:
             self._status_widget.remove_class("pending")
             self._status_widget.add_class("rejected")  # Use same styling as rejected
@@ -1182,7 +1239,7 @@ class DiffMessage(Static):
     DEFAULT_CSS = """
     DiffMessage {
         height: auto;
-        padding: 1;
+        padding: 1 2;
         margin: 1 0;
         background: #0b151b;
         border: solid #1d3b37;
@@ -1253,7 +1310,7 @@ class ErrorMessage(Static):
     DEFAULT_CSS = """
     ErrorMessage {
         height: auto;
-        padding: 1;
+        padding: 1 2;
         margin: 1 0;
         background: #2a1114;
         color: #fee2e2;
@@ -1293,7 +1350,7 @@ class AppMessage(Static):
     DEFAULT_CSS = """
     AppMessage {
         height: auto;
-        padding: 0 1;
+        padding: 0 2;
         margin: 1 0;
         color: #8fb4ac;
         text-style: italic;
@@ -1326,7 +1383,7 @@ class SummarizationMessage(AppMessage):
     DEFAULT_CSS = """
     SummarizationMessage {
         height: auto;
-        padding: 0 1;
+        padding: 0 2;
         margin: 1 0;
         color: $primary;
         background: #0d1917;

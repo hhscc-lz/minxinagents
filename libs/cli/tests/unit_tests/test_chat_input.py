@@ -847,7 +847,7 @@ class TestModePrefixStripping:
             assert popup.styles.display == "none"
 
     async def test_slash_completion_works_after_strip(self) -> None:
-        """Entering command mode and typing `'h'` should trigger completions."""
+        """Entering command mode and typing `'反'` should trigger completions."""
         app = _ChatInputTestApp()
         async with app.run_test() as pilot:
             chat = app.query_one(ChatInput)
@@ -858,14 +858,14 @@ class TestModePrefixStripping:
             await _pause_for_strip(pilot)
             assert chat.mode == "command"
 
-            # Now type "h" — the virtual prefix makes the controller see "/h"
-            chat._text_area.text = "h"
+            # Now type "反" — the virtual prefix makes the controller see "/反"
+            chat._text_area.text = "反"
             await pilot.pause()
 
-            # Completions should include /help
+            # Completions should include /反馈
             assert chat._current_suggestions
             labels = [s[0] for s in chat._current_suggestions]
-            assert "/help" in labels
+            assert "/反馈" in labels
 
     async def test_submission_prepends_shell_prefix(self) -> None:
         """Submitting in shell mode should prepend `'!'` to the value."""

@@ -80,13 +80,15 @@ class StatusBar(Horizontal):
     StatusBar {
         height: 1;
         dock: bottom;
-        background: $surface;
+        background: #0a1318;
+        border-top: solid #1d3b37;
         padding: 0 1;
     }
 
     StatusBar .status-mode {
         width: auto;
         padding: 0 1;
+        text-style: bold;
     }
 
     StatusBar .status-mode.normal {
@@ -95,13 +97,12 @@ class StatusBar(Horizontal):
 
     StatusBar .status-mode.shell {
         background: __MODE_SHELL__;
-        color: white;
-        text-style: bold;
+        color: black;
     }
 
     StatusBar .status-mode.command {
         background: __MODE_CMD__;
-        color: white;
+        color: black;
     }
 
     StatusBar .status-auto-approve {
@@ -110,34 +111,35 @@ class StatusBar(Horizontal):
     }
 
     StatusBar .status-auto-approve.on {
-        background: #10b981;
+        background: #2dd4bf;
         color: black;
     }
 
     StatusBar .status-auto-approve.off {
-        background: #f59e0b;
-        color: black;
+        background: #334155;
+        color: #e2e8f0;
     }
 
     StatusBar .status-message {
         width: auto;
         padding: 0 1;
-        color: $text-muted;
+        color: #94a3b8;
     }
 
     StatusBar .status-message.thinking {
-        color: $warning;
+        color: #5eead4;
+        text-style: bold;
     }
 
     StatusBar .status-cwd {
         width: auto;
         text-align: right;
-        color: $text-muted;
+        color: #64748b;
     }
 
     StatusBar .status-branch {
         width: auto;
-        color: $text-muted;
+        color: #64748b;
         padding: 0 1;
     }
 
@@ -151,13 +153,13 @@ class StatusBar(Horizontal):
     StatusBar .status-tokens {
         width: auto;
         padding: 0 1;
-        color: $text-muted;
+        color: #94a3b8;
     }
 
     StatusBar ModelLabel {
         width: auto;
         padding: 0 2;
-        color: $text-muted;
+        color: #cbd5e1;
         text-align: right;
     }
     """.replace("__MODE_SHELL__", COLORS["mode_shell"]).replace(

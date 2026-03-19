@@ -25,6 +25,7 @@ from textual.containers import Container, VerticalScroll
 from textual.css.query import NoMatches
 from textual.message import Message
 from textual.screen import ModalScreen
+from textual.widgets import Static
 
 from deepagents_cli.clipboard import copy_selection_to_clipboard
 from deepagents_cli.config import (
@@ -701,6 +702,7 @@ class DeepAgentsApp(App):
             )
             yield Container(id="messages")
         with Container(id="bottom-app-container"):
+            yield Static("输入 / 查看可用命令", id="input-shortcut-hint")
             yield ChatInput(
                 cwd=self._cwd,
                 image_tracker=self._image_tracker,

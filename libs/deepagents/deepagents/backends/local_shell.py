@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-DEFAULT_EXECUTE_TIMEOUT = 120
+DEFAULT_EXECUTE_TIMEOUT = 300
 """Default timeout in seconds for shell command execution."""
 
 

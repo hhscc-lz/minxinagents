@@ -72,19 +72,21 @@ class CompletionOption(Static):
     CompletionOption {
         height: 1;
         padding: 0 1;
+        color: #d7efe9;
     }
 
     CompletionOption:hover {
-        background: $surface-lighten-1;
+        background: #102029;
     }
 
     CompletionOption.completion-option-selected {
-        background: $primary;
+        background: #16333c;
+        border-left: thick #38bdf8;
         text-style: bold;
     }
 
     CompletionOption.completion-option-selected:hover {
-        background: $primary-lighten-1;
+        background: #1a3b46;
     }
     """
 
@@ -729,9 +731,9 @@ class ChatInput(Vertical):
         height: auto;
         min-height: 3;
         max-height: 25;
-        padding: 0;
-        background: $surface;
-        border: solid $primary;
+        padding: 0 1;
+        background: #0b151b;
+        border: solid #1d3b37;
     }
 
     ChatInput.mode-shell {
@@ -751,16 +753,19 @@ class ChatInput(Vertical):
         width: 3;
         height: 1;
         padding: 0 1;
+        background: #102129;
         color: $primary;
         text-style: bold;
     }
 
     ChatInput.mode-shell .input-prompt {
-        color: __MODE_SHELL__;
+        background: __MODE_SHELL__;
+        color: black;
     }
 
     ChatInput.mode-command .input-prompt {
-        color: __MODE_CMD__;
+        background: __MODE_CMD__;
+        color: black;
     }
 
     ChatInput ChatTextArea {
@@ -770,7 +775,8 @@ class ChatInput(Vertical):
         max-height: 8;
         border: none;
         background: transparent;
-        padding: 0;
+        color: #e2e8f0;
+        padding: 0 1;
     }
 
     ChatInput ChatTextArea:focus {
