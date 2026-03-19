@@ -28,8 +28,10 @@ RUN rm -rf /usr/local/lib/python*/site-packages/pip* /usr/local/lib/python*/site
 RUN rm -rf /usr/lib/python*/site-packages/pip* /usr/lib/python*/site-packages/setuptools* /usr/lib/python*/site-packages/wheel* && find /usr/bin -name "pip*" -delete || true
 RUN uv pip uninstall --system pip setuptools wheel && rm /usr/bin/uv /usr/bin/uvx
 
-WORKDIR /deps/cli
+RUN mkdir -p /minxinagent
+
+WORKDIR /minxinagent
 
 EXPOSE 8000
 
-ENTRYPOINT ["python", "textual_run.py"]
+ENTRYPOINT ["python", "/deps/cli/textual_run.py"]
