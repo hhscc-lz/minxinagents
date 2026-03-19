@@ -535,15 +535,11 @@ class TestModalScreenCtrlDHandling:
                     patch.object(app, "exit") as exit_mock,
                 ):
                     app.action_quit_or_interrupt()
-                    notify_mock.assert_called_once_with(
-                        "Press Ctrl+C again to quit",
-                        timeout=3,
-                    )
-                    assert app._quit_pending is True
+                    notify_mock.assert_not_called()
                     exit_mock.assert_not_called()
 
                     app.action_quit_or_interrupt()
-                    exit_mock.assert_called_once()
+                    exit_mock.assert_not_called()
 
     async def test_ctrl_d_quits_from_model_selector_with_input_focused(
         self,
@@ -648,10 +644,10 @@ class TestModalScreenShiftTabHandling:
 class TestModalScreenCtrlCHandling:
     """Tests for app-level Ctrl+C behavior while modals are open."""
 
-    async def test_ctrl_c_quits_from_thread_selector_with_input_focused(
+    async def test_ctrl_c_does_not_quit_from_thread_selector_with_input_focused(
         self,
     ) -> None:
-        """Ctrl+C should reach the app even when the thread filter has focus."""
+        """Ctrl+C should not quit when the thread filter has focus."""
         from deepagents_cli.widgets.thread_selector import ThreadSelectorScreen
 
         app = DeepAgentsApp()
@@ -682,21 +678,14 @@ class TestModalScreenCtrlCHandling:
             ):
                 await pilot.press("ctrl+c")
                 await pilot.pause()
-                notify_mock.assert_called_once_with(
-                    "Press Ctrl+C again to quit",
-                    timeout=3,
-                )
-                assert app._quit_pending is True
+                notify_mock.assert_not_called()
                 exit_mock.assert_not_called()
+                assert app._quit_pending is False
 
-                await pilot.press("ctrl+c")
-                await pilot.pause()
-                exit_mock.assert_called_once()
-
-    async def test_ctrl_c_quits_from_model_selector_with_input_focused(
+    async def test_ctrl_c_does_not_quit_from_model_selector_with_input_focused(
         self,
     ) -> None:
-        """Ctrl+C should not be swallowed by the model filter input."""
+        """Ctrl+C should not quit from the model filter input."""
         from deepagents_cli.widgets.model_selector import ModelSelectorScreen
 
         app = DeepAgentsApp()
@@ -719,19 +708,12 @@ class TestModalScreenCtrlCHandling:
             ):
                 await pilot.press("ctrl+c")
                 await pilot.pause()
-                notify_mock.assert_called_once_with(
-                    "Press Ctrl+C again to quit",
-                    timeout=3,
-                )
-                assert app._quit_pending is True
+                notify_mock.assert_not_called()
                 exit_mock.assert_not_called()
+                assert app._quit_pending is False
 
-                await pilot.press("ctrl+c")
-                await pilot.pause()
-                exit_mock.assert_called_once()
-
-    async def test_ctrl_c_quits_from_mcp_viewer(self) -> None:
-        """Ctrl+C should still trigger app quit flow while the MCP modal is open."""
+    async def test_ctrl_c_does_not_quit_from_mcp_viewer(self) -> None:
+        """Ctrl+C should not trigger app quit flow while the MCP modal is open."""
         from deepagents_cli.mcp_tools import MCPServerInfo, MCPToolInfo
         from deepagents_cli.widgets.mcp_viewer import MCPViewerScreen
 
@@ -762,16 +744,9 @@ class TestModalScreenCtrlCHandling:
             ):
                 await pilot.press("ctrl+c")
                 await pilot.pause()
-                notify_mock.assert_called_once_with(
-                    "Press Ctrl+C again to quit",
-                    timeout=3,
-                )
-                assert app._quit_pending is True
+                notify_mock.assert_not_called()
                 exit_mock.assert_not_called()
-
-                await pilot.press("ctrl+c")
-                await pilot.pause()
-                exit_mock.assert_called_once()
+                assert app._quit_pending is False
 
 
 class TestMountMessageNoMatches:
@@ -1240,7 +1215,8 @@ class TestTraceCommand:
 
             app_msgs = app.query(AppMessage)
             assert any(
-                "反馈需求功能开发中，当前请联系159xxx" in str(w._content)
+                "已受理命令：/反馈" in str(w._content)
+                and "反馈功能开发中，当前请加刘壮微信：15940581330" in str(w._content)
                 for w in app_msgs
             )
 
@@ -1608,7 +1584,7 @@ class TestShellCommandInterrupt:
             mock_killpg.assert_any_call(42, signal.SIGKILL)
 
     async def test_no_op_when_no_shell_running(self) -> None:
-        """Ctrl+C with no shell command running should fall through to quit hint."""
+        """Ctrl+C with no shell command running should be a no-op."""
         app = DeepAgentsApp()
         async with app.run_test() as pilot:
             await pilot.pause()
@@ -1616,7 +1592,7 @@ class TestShellCommandInterrupt:
             assert not app._shell_running
             app.action_quit_or_interrupt()
 
-            assert app._quit_pending is True
+            assert app._quit_pending is False
 
     async def test_oserror_shows_error_message(self) -> None:
         """OSError from create_subprocess_shell should display error."""

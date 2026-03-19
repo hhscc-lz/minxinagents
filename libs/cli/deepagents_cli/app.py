@@ -2950,14 +2950,13 @@ class DeepAgentsApp(App):
             worker.cancel()
 
     def action_quit_or_interrupt(self) -> None:
-        """Handle Ctrl+C - interrupt agent, reject approval, or quit on double press.
+        """Handle Ctrl+C as an interrupt-only shortcut.
 
         Priority order:
         1. If shell command is running, kill it
         2. If approval menu is active, reject it
         3. If agent is running, interrupt it (preserve input)
-        4. If double press (quit_pending), quit
-        5. Otherwise show quit hint
+        4. Otherwise do nothing
         """
         # If shell command is running, cancel the worker
         if self._shell_running and self._shell_worker:
@@ -2987,11 +2986,7 @@ class DeepAgentsApp(App):
             self._quit_pending = False
             return
 
-        # Double Ctrl+C to quit
-        if self._quit_pending:
-            self.exit()
-        else:
-            self._arm_quit_pending("Ctrl+C")
+        self._quit_pending = False
 
     def _arm_quit_pending(self, shortcut: str) -> None:
         """Set the pending-quit flag and show a matching hint.
