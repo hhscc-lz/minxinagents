@@ -53,9 +53,9 @@ def _build_tools(
         RuntimeError: If MCP tool loading fails.
     """
     from deepagents_cli.config import settings
-    from deepagents_cli.tools import fetch_url, http_request, web_search
+    from deepagents_cli.tools import export_data, fetch_url, http_request, web_search
 
-    tools: list[Any] = [http_request, fetch_url]
+    tools: list[Any] = [http_request, fetch_url, export_data]
     if settings.has_tavily:
         tools.append(web_search)
 

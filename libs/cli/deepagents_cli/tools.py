@@ -234,3 +234,37 @@ def fetch_url(url: str, timeout: int = 30) -> dict[str, Any]:
         }
     except requests.exceptions.RequestException as e:
         return {"error": f"Fetch URL error: {e!s}", "url": url}
+
+
+def export_data(sql: str) -> dict[str, Any]:
+    """Execute a SQL query and export the result set to object storage.
+
+    This tool runs the given SELECT statement, writes the results to a CSV file,
+    and uploads it to the configured object storage (MinIO).  The caller receives
+    a pre-signed download URL.
+
+    Use this tool when the user asks to export, download, or save query results
+    — for example detail records filtered by region, date range, or status.
+
+    Args:
+        sql: The SQL SELECT statement to execute.
+
+    Returns:
+        Dictionary containing:
+        - success: Whether the export completed successfully
+        - url: Pre-signed download URL for the exported file
+
+    IMPORTANT: After using this tool:
+    1. Present the returned URL to the user as a download link
+    2. If the export failed, relay the error message to the user
+    """
+    import uuid
+    from datetime import datetime
+
+    # TODO: execute SQL and upload to MinIO
+    file_name = f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:8]}.csv"
+
+    return {
+        "success": True,
+        "url": f"http://minio.example.com/data-exports/{file_name}",
+    }

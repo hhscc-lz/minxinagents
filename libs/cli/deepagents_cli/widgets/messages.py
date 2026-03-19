@@ -99,6 +99,8 @@ _TOOLS_WITH_HEADER_INFO: set[str] = {
     # Agent tools
     "task",
     "write_todos",
+    # Data export tools
+    "export_data",
 }
 
 
@@ -110,8 +112,8 @@ class UserMessage(Static):
         height: auto;
         padding: 0 1;
         margin: 1 0 0 0;
-        background: transparent;
-        border-left: wide #10b981;
+        background: #09141a;
+        border-left: wide #2dd4bf;
     }
     """
 
@@ -174,7 +176,7 @@ class UserMessage(Static):
                 text.append(token, style="bold #fbbf24")
             elif token.startswith("@"):
                 # @file mention - green
-                text.append(token, style="bold #10b981")
+                text.append(token, style=f"bold {COLORS['primary']}")
             last_end = end
 
         # Add remaining text after last match
@@ -247,10 +249,12 @@ class AssistantMessage(Vertical):
         height: auto;
         padding: 0 1;
         margin: 1 0 0 0;
+        background: #08131a;
+        border-left: wide #1d3b37;
     }
 
     AssistantMessage Markdown {
-        padding: 0;
+        padding: 0 1;
         margin: 0;
     }
     """
@@ -352,9 +356,9 @@ class ToolCallMessage(Vertical):
     ToolCallMessage {
         height: auto;
         padding: 0 1;
-        margin: 0 0 1 0;
-        background: transparent;
-        border-left: wide #3b3b3b;
+        margin: 1 0 1 0;
+        background: #0a1217;
+        border-left: wide #334155;
     }
 
     ToolCallMessage .tool-header {
@@ -362,7 +366,7 @@ class ToolCallMessage(Vertical):
     }
 
     ToolCallMessage .tool-args {
-        color: #6b7280;
+        color: #94a3b8;
         margin-left: 3;
     }
 
@@ -375,7 +379,7 @@ class ToolCallMessage(Vertical):
     }
 
     ToolCallMessage .tool-status.success {
-        color: #10b981;
+        color: #2dd4bf;
     }
 
     ToolCallMessage .tool-status.error {
@@ -400,11 +404,11 @@ class ToolCallMessage(Vertical):
 
     ToolCallMessage .tool-output-hint {
         margin-left: 0;
-        color: #6b7280;
+        color: #94a3b8;
     }
 
     ToolCallMessage:hover {
-        border-left: wide #525252;
+        border-left: wide #64748b;
     }
     """
 
@@ -593,7 +597,7 @@ class ToolCallMessage(Vertical):
         self._stop_animation()
         self._status = "success"
         # For execute tools, hide raw output (code, stderr, etc.) from end users
-        if self._tool_name in {"shell", "bash", "execute"}:
+        if self._tool_name in {"shell", "bash", "execute", "export_data"}:
             self._output = ""
         else:
             self._output = result
@@ -612,7 +616,7 @@ class ToolCallMessage(Vertical):
         self._stop_animation()
         self._status = "error"
         # For shell commands, hide raw traceback from end users
-        if self._tool_name in {"shell", "bash", "execute"}:
+        if self._tool_name in {"shell", "bash", "execute", "export_data"}:
             self._output = "正在分析数据..."
         else:
             self._output = error
@@ -1180,8 +1184,8 @@ class DiffMessage(Static):
         height: auto;
         padding: 1;
         margin: 1 0;
-        background: $surface;
-        border: solid $primary;
+        background: #0b151b;
+        border: solid #1d3b37;
     }
 
     DiffMessage .diff-header {
@@ -1190,8 +1194,8 @@ class DiffMessage(Static):
     }
 
     DiffMessage .diff-add {
-        color: #10b981;
-        background: #10b98120;
+        color: #2dd4bf;
+        background: #0f2d29;
     }
 
     DiffMessage .diff-remove {
@@ -1251,8 +1255,8 @@ class ErrorMessage(Static):
         height: auto;
         padding: 1;
         margin: 1 0;
-        background: #7f1d1d;
-        color: white;
+        background: #2a1114;
+        color: #fee2e2;
         border-left: wide $error;
     }
     """
@@ -1291,7 +1295,7 @@ class AppMessage(Static):
         height: auto;
         padding: 0 1;
         margin: 1 0;
-        color: $text-muted;
+        color: #8fb4ac;
         text-style: italic;
     }
     """
@@ -1325,7 +1329,7 @@ class SummarizationMessage(AppMessage):
         padding: 0 1;
         margin: 1 0;
         color: $primary;
-        background: $surface;
+        background: #0d1917;
         border-left: wide $primary;
         text-style: bold;
     }

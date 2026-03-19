@@ -221,6 +221,9 @@ def format_tool_display(tool_name: str, tool_args: dict) -> str:
             desc = _sanitize_display_value(tool_args["description"], max_length=100)
             return f'{prefix} {tool_name}("{desc}")'
 
+    elif tool_name == "export_data":
+        return f"{prefix} 正在导出数据..."
+
     elif tool_name == "ask_user":
         if "questions" in tool_args and isinstance(tool_args["questions"], list):
             count = len(tool_args["questions"])
