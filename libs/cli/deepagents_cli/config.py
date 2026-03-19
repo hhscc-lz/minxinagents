@@ -108,19 +108,16 @@ COLORS = {
     "agent": "#2dd4bf",
     "thinking": "#5eead4",
     "tool": "#fbbf24",
-    "mode_shell": "#f59e0b",
     "mode_command": "#38bdf8",
 }
 """App color scheme."""
 
 MODE_PREFIXES: dict[str, str] = {
-    "shell": "!",
     "command": "/",
 }
 """Maps each non-normal mode to its trigger character."""
 
 MODE_DISPLAY_GLYPHS: dict[str, str] = {
-    "shell": "$",
     "command": "/",
 }
 """Maps each non-normal mode to its display glyph shown in the prompt/UI."""

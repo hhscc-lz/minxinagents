@@ -95,11 +95,6 @@ class StatusBar(Horizontal):
         display: none;
     }
 
-    StatusBar .status-mode.shell {
-        background: __MODE_SHELL__;
-        color: black;
-    }
-
     StatusBar .status-mode.command {
         background: __MODE_CMD__;
         color: black;
@@ -162,9 +157,7 @@ class StatusBar(Horizontal):
         color: #cbd5e1;
         text-align: right;
     }
-    """.replace("__MODE_SHELL__", COLORS["mode_shell"]).replace(
-        "__MODE_CMD__", COLORS["mode_command"]
-    )
+    """.replace("__MODE_CMD__", COLORS["mode_command"])
 
     mode: reactive[str] = reactive("normal", init=False)
     status_message: reactive[str] = reactive("", init=False)
@@ -225,12 +218,9 @@ class StatusBar(Horizontal):
             indicator = self.query_one("#mode-indicator", Static)
         except NoMatches:
             return
-        indicator.remove_class("normal", "shell", "command")
+        indicator.remove_class("normal", "command")
 
-        if mode == "shell":
-            indicator.update("命令行")
-            indicator.add_class("shell")
-        elif mode == "command":
+        if mode == "command":
             indicator.update("指令")
             indicator.add_class("command")
         else:

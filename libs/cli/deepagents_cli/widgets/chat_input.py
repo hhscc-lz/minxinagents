@@ -736,10 +736,6 @@ class ChatInput(Vertical):
         border: solid #1d3b37;
     }
 
-    ChatInput.mode-shell {
-        border: solid __MODE_SHELL__;
-    }
-
     ChatInput.mode-command {
         border: solid __MODE_CMD__;
     }
@@ -756,11 +752,6 @@ class ChatInput(Vertical):
         background: #102129;
         color: $primary;
         text-style: bold;
-    }
-
-    ChatInput.mode-shell .input-prompt {
-        background: __MODE_SHELL__;
-        color: black;
     }
 
     ChatInput.mode-command .input-prompt {
@@ -782,9 +773,7 @@ class ChatInput(Vertical):
     ChatInput ChatTextArea:focus {
         border: none;
     }
-    """.replace("__MODE_SHELL__", COLORS["mode_shell"]).replace(
-        "__MODE_CMD__", COLORS["mode_command"]
-    )
+    """.replace("__MODE_CMD__", COLORS["mode_command"])
 
     class Submitted(Message):
         """Message sent when input is submitted."""
@@ -842,7 +831,7 @@ class ChatInput(Vertical):
         self._skip_media_sync_events = 0
 
         # Number of virtual prefix characters currently injected for
-        # completion controller calls (0 for normal, 1 for shell/command).
+        # completion controller calls (0 for normal, 1 for command).
         self._completion_prefix_len = 0
 
         # Guard flag: set while replacing a dropped path payload with an
@@ -924,7 +913,7 @@ class ChatInput(Vertical):
                 if self.mode != "normal":
                     self.mode = "normal"
             else:
-                # Detected a mode-trigger prefix (e.g. "!" or "/").
+                # Detected a mode-trigger prefix (e.g. "/").
                 # Strip it unconditionally -- even when already in the correct
                 # mode -- because completion controllers may write replacement
                 # text that re-includes the trigger character.  The
@@ -1135,7 +1124,7 @@ class ChatInput(Vertical):
         value = self._replace_submitted_paths_with_images(value)
 
         # Prepend mode prefix so the app layer receives the original trigger
-        # form (e.g. "!ls", "/help"). The value may already contain the prefix
+        # form (e.g. "/help"). The value may already contain the prefix
         # when a completion controller wrote it back into the text area before
         # the strip handler ran.
         prefix = MODE_PREFIXES.get(self.mode, "")
@@ -1437,7 +1426,7 @@ class ChatInput(Vertical):
             return
 
         # Backspace at cursor position 0 (or on empty input) exits the
-        # current mode (e.g. command/shell).  When the cursor is at the very
+        # current mode (e.g. command). When the cursor is at the very
         # start of the text area, backspace is a no-op for the underlying
         # widget, so without this guard the user would be stuck in the mode.
         if (
@@ -1463,7 +1452,7 @@ class ChatInput(Vertical):
                 event.stop()
                 self._submit_value(self._text_area.text.strip())
             case CompletionResult.IGNORED if event.key == "enter":
-                # Handle Enter when completion is not active (shell/normal modes)
+                # Handle Enter when completion is not active.
                 value = self._text_area.text.strip()
                 if value:
                     event.prevent_default()
@@ -1500,7 +1489,7 @@ class ChatInput(Vertical):
             logger.warning("watch_mode: #prompt widget not found")
             self.post_message(self.ModeChanged(mode))
             return
-        self.remove_class("mode-shell", "mode-command")
+        self.remove_class("mode-command")
         glyph = MODE_DISPLAY_GLYPHS.get(mode)
         if glyph:
             prompt.update(glyph)
@@ -1564,7 +1553,7 @@ class ChatInput(Vertical):
             self._text_area.set_app_focus(has_focus=active)
 
     def exit_mode(self) -> bool:
-        """Exit the current input mode (command/shell) back to normal.
+        """Exit the current input mode back to normal.
 
         Returns:
             True if mode was non-normal and has been reset.

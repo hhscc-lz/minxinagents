@@ -263,21 +263,6 @@ def _prompt_text(prompt: Static) -> str:
 class TestPromptIndicator:
     """Test that the prompt indicator reflects the current input mode."""
 
-    async def test_prompt_shows_bang_in_shell_mode(self) -> None:
-        """Mode 'shell' should change prompt to '!' and apply styling."""
-        app = _ChatInputTestApp()
-        async with app.run_test() as pilot:
-            chat_input = app.query_one(ChatInput)
-            prompt = chat_input.query_one("#prompt", Static)
-
-            assert _prompt_text(prompt) == ">"
-            assert not chat_input.has_class("mode-shell")
-
-            chat_input.mode = "shell"
-            await pilot.pause()
-            assert _prompt_text(prompt) == "$"
-            assert chat_input.has_class("mode-shell")
-
     async def test_prompt_shows_slash_in_command_mode(self) -> None:
         """Setting mode to 'command' should change prompt and styling."""
         app = _ChatInputTestApp()
@@ -297,15 +282,14 @@ class TestPromptIndicator:
             chat_input = app.query_one(ChatInput)
             prompt = chat_input.query_one("#prompt", Static)
 
-            chat_input.mode = "shell"
+            chat_input.mode = "command"
             await pilot.pause()
-            assert _prompt_text(prompt) == "$"
-            assert chat_input.has_class("mode-shell")
+            assert _prompt_text(prompt) == "/"
+            assert chat_input.has_class("mode-command")
 
             chat_input.mode = "normal"
             await pilot.pause()
             assert _prompt_text(prompt) == ">"
-            assert not chat_input.has_class("mode-shell")
             assert not chat_input.has_class("mode-command")
 
     async def test_mode_change_posts_message(self) -> None:
@@ -323,9 +307,9 @@ class TestPromptIndicator:
         async with app.run_test() as pilot:
             chat_input = app.query_one(ChatInput)
 
-            chat_input.mode = "shell"
+            chat_input.mode = "command"
             await pilot.pause()
-            assert any(m.mode == "shell" for m in messages)
+            assert any(m.mode == "command" for m in messages)
 
 
 class TestHistoryNavigationFlag:
@@ -708,19 +692,6 @@ class TestDismissCompletion:
 class TestModePrefixStripping:
     """Test that mode-trigger characters are stripped from text input."""
 
-    async def test_typing_bang_strips_prefix_and_sets_shell_mode(self) -> None:
-        """Setting text to `'!ls'` should strip to `'ls'` and enter shell mode."""
-        app = _ChatInputTestApp()
-        async with app.run_test() as pilot:
-            chat = app.query_one(ChatInput)
-            assert chat._text_area is not None
-
-            chat._text_area.text = "!ls"
-            await _pause_for_strip(pilot)
-
-            assert chat.mode == "shell"
-            assert chat._text_area.text == "ls"
-
     async def test_typing_slash_strips_prefix_and_sets_command_mode(self) -> None:
         """Setting text to `'/'` should strip to `''` and enter command mode."""
         app = _ChatInputTestApp()
@@ -735,38 +706,38 @@ class TestModePrefixStripping:
             assert chat._text_area.text == ""
 
     async def test_mode_stays_on_empty_text(self) -> None:
-        """Clearing text after entering shell mode should stay in mode."""
+        """Clearing text after entering command mode should stay in mode."""
         app = _ChatInputTestApp()
         async with app.run_test() as pilot:
             chat = app.query_one(ChatInput)
             assert chat._text_area is not None
 
-            # Enter shell mode
-            chat._text_area.text = "!ls"
+            # Enter command mode
+            chat._text_area.text = "/"
             await _pause_for_strip(pilot)
-            assert chat.mode == "shell"
+            assert chat.mode == "command"
 
             # Clear text — mode should persist (backspace on empty exits)
             chat._text_area.text = ""
             await pilot.pause()
-            assert chat.mode == "shell"
+            assert chat.mode == "command"
 
     async def test_backspace_on_empty_exits_mode(self) -> None:
-        """Backspace on empty input in shell mode should reset to normal."""
+        """Backspace on empty input in command mode should reset to normal."""
         app = _ChatInputTestApp()
         async with app.run_test() as pilot:
             chat = app.query_one(ChatInput)
             assert chat._text_area is not None
 
-            # Enter shell mode
-            chat._text_area.text = "!ls"
+            # Enter command mode
+            chat._text_area.text = "/"
             await _pause_for_strip(pilot)
-            assert chat.mode == "shell"
+            assert chat.mode == "command"
 
-            # Clear text — still in shell mode
+            # Clear text — still in command mode
             chat._text_area.text = ""
             await pilot.pause()
-            assert chat.mode == "shell"
+            assert chat.mode == "command"
 
             # Backspace on empty — exits mode
             await pilot.press("backspace")
@@ -867,28 +838,6 @@ class TestModePrefixStripping:
             labels = [s[0] for s in chat._current_suggestions]
             assert "/反馈" in labels
 
-    async def test_submission_prepends_shell_prefix(self) -> None:
-        """Submitting in shell mode should prepend `'!'` to the value."""
-        app = _RecordingApp()
-        async with app.run_test() as pilot:
-            chat = app.query_one(ChatInput)
-            assert chat._text_area is not None
-
-            # Enter shell mode
-            chat._text_area.text = "!ls"
-            await _pause_for_strip(pilot)
-            assert chat.mode == "shell"
-            assert chat._text_area.text == "ls"
-
-            # Submit
-            await pilot.press("enter")
-            await pilot.pause()
-
-            # Should have received "!ls"
-            assert len(app.submitted) == 1
-            assert app.submitted[0].value == "!ls"
-            assert app.submitted[0].mode == "shell"
-
     async def test_submission_prepends_command_prefix(self) -> None:
         """Submitting in command mode should prepend `'/'` to the value."""
         app = _RecordingApp()
@@ -924,10 +873,10 @@ class TestModePrefixStripping:
             chat = app.query_one(ChatInput)
             assert chat._text_area is not None
 
-            # Enter shell mode and submit
-            chat._text_area.text = "!ls"
+            # Enter command mode and submit
+            chat._text_area.text = "/"
             await _pause_for_strip(pilot)
-            assert chat.mode == "shell"
+            assert chat.mode == "command"
 
             await pilot.press("enter")
             await pilot.pause()
@@ -936,34 +885,22 @@ class TestModePrefixStripping:
             assert chat._text_area.text == ""
 
     async def test_mode_sticky_during_typing(self) -> None:
-        """Mode should persist while typing in shell/command mode."""
+        """Mode should persist while typing in command mode."""
         app = _ChatInputTestApp()
         async with app.run_test() as pilot:
             chat = app.query_one(ChatInput)
             assert chat._text_area is not None
 
-            # Enter shell mode
-            chat._text_area.text = "!echo hello"
+            # Enter command mode
+            chat._text_area.text = "/"
             await _pause_for_strip(pilot)
-            assert chat.mode == "shell"
-            assert chat._text_area.text == "echo hello"
+            assert chat.mode == "command"
+            assert chat._text_area.text == ""
 
-            # Continue typing — mode stays shell
-            chat._text_area.text = "echo hello world"
+            # Continue typing — mode stays command
+            chat._text_area.text = "help"
             await pilot.pause()
-            assert chat.mode == "shell"
-
-    async def test_shell_mode_does_not_trigger_completions(self) -> None:
-        """Typing in shell mode should not trigger completions."""
-        app = _ChatInputTestApp()
-        async with app.run_test() as pilot:
-            chat = app.query_one(ChatInput)
-            assert chat._text_area is not None
-
-            chat._text_area.text = "!echo"
-            await _pause_for_strip(pilot)
-            assert chat.mode == "shell"
-            assert chat._current_suggestions == []
+            assert chat.mode == "command"
 
     async def test_submission_does_not_double_prefix(self) -> None:
         """If text already starts with prefix, submission should not add another."""
@@ -973,38 +910,21 @@ class TestModePrefixStripping:
             assert chat._text_area is not None
 
             # Manually set mode and text that already has prefix
-            chat.mode = "shell"
+            chat.mode = "command"
             chat._stripping_prefix = True  # prevent mode re-detection
-            chat._text_area.text = "!already-prefixed"
+            chat._text_area.text = "/already-prefixed"
             await pilot.pause()
+            chat.dismiss_completion()
 
             await pilot.press("enter")
             await pilot.pause()
 
             assert len(app.submitted) == 1
-            assert app.submitted[0].value == "!already-prefixed"
+            assert app.submitted[0].value == "/already-prefixed"
 
 
 class TestExitModePreservesText:
-    """Exiting shell/command mode should preserve typed text."""
-
-    async def test_exit_shell_mode_keeps_text(self) -> None:
-        """Pressing Escape in shell mode should switch to normal but keep text."""
-        app = _ChatInputTestApp()
-        async with app.run_test() as pilot:
-            chat = app.query_one(ChatInput)
-            assert chat._text_area is not None
-
-            # Enter shell mode with some text
-            chat._text_area.text = "!ls -la"
-            await _pause_for_strip(pilot)
-            assert chat.mode == "shell"
-            assert chat._text_area.text == "ls -la"
-
-            # Exit mode — text should be preserved
-            assert chat.exit_mode() is True
-            assert chat.mode == "normal"
-            assert chat._text_area.text == "ls -la"
+    """Exiting command mode should preserve typed text."""
 
     async def test_exit_command_mode_keeps_text(self) -> None:
         """Pressing Escape in command mode should switch to normal but keep text."""
@@ -1028,68 +948,7 @@ class TestExitModePreservesText:
 
 
 class TestHistoryRecallModeReset:
-    """Regression: history recall must not inherit a stale shell/command mode."""
-
-    async def test_history_non_prefixed_entry_resets_shell_mode(self) -> None:
-        """Recalling a normal-mode entry while in shell mode should reset to normal."""
-        app = _RecordingApp()
-        async with app.run_test() as pilot:
-            chat = app.query_one(ChatInput)
-            assert chat._text_area is not None
-
-            # Seed history with a normal-mode entry
-            chat._history._entries.append("echo hello")
-
-            # Enter shell mode, then clear text so the history query is
-            # empty (matches all entries) — we're testing mode reset, not
-            # substring filtering.
-            chat._text_area.text = "!ls"
-            await _pause_for_strip(pilot)
-            assert chat.mode == "shell"
-            chat._text_area.text = ""
-            await pilot.pause()
-
-            # Press up to recall the non-prefixed history entry through
-            # the ChatInput handler (which normalizes mode).
-            await pilot.press("up")
-            await pilot.pause()
-
-            # Mode must have reset to normal
-            assert chat.mode == "normal"
-            assert chat._text_area.text == "echo hello"
-
-            # Submitting should NOT prepend "!"
-            await pilot.press("enter")
-            await pilot.pause()
-
-            assert len(app.submitted) == 1
-            assert app.submitted[0].value == "echo hello"
-            assert app.submitted[0].mode == "normal"
-
-    async def test_history_prefixed_entry_keeps_mode(self) -> None:
-        """Recalling a shell-prefixed entry should re-enter shell mode."""
-        app = _RecordingApp()
-        async with app.run_test() as pilot:
-            chat = app.query_one(ChatInput)
-            assert chat._text_area is not None
-
-            # Seed history with a shell-mode entry
-            chat._history._entries.append("!ls")
-
-            # Press up to recall the prefixed entry
-            await pilot.press("up")
-            await _pause_for_strip(pilot)
-
-            assert chat.mode == "shell"
-            assert chat._text_area.text == "ls"
-
-            # Submit — should prepend "!"
-            await pilot.press("enter")
-            await pilot.pause()
-
-            assert len(app.submitted) == 1
-            assert app.submitted[0].value == "!ls"
-            assert app.submitted[0].mode == "shell"
+    """Regression: history recall must not inherit a stale command mode."""
 
     async def test_history_non_prefixed_entry_resets_command_mode(self) -> None:
         """Recalling a normal entry while in command mode should reset to normal."""
