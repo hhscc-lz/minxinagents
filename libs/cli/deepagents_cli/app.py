@@ -760,28 +760,6 @@ class DeepAgentsApp(App):
         # Focus the input (autocomplete is now built into ChatInput)
         self._chat_input.focus_input()
 
-        # Warn about missing optional tools (advisory only — never block startup)
-        try:
-            from deepagents_cli.main import (
-                check_optional_tools,
-                format_tool_warning_tui,
-            )
-        except ImportError:
-            logger.warning(
-                "Could not import optional tools checker; skipping tool warnings",
-                exc_info=True,
-            )
-        else:
-            try:
-                for tool in check_optional_tools():
-                    self.notify(
-                        format_tool_warning_tui(tool),
-                        severity="warning",
-                        timeout=15,
-                    )
-            except Exception:
-                logger.debug("Failed to check for optional tools", exc_info=True)
-
         # Auto-submit initial prompt if provided via -m flag.
         # This check must come first because _lc_thread_id and _agent are
         # always set (even for brand-new sessions), so an elif after the

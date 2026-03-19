@@ -1237,24 +1237,6 @@ def cli_main() -> None:
                 # No subcommand provided, show threads help screen
                 show_threads_help()
         elif args.non_interactive_message:
-            # Check for optional tools before running agent (stderr so
-            # --quiet piped output stays clean)
-            try:
-                from rich.console import Console as _Console
-            except ImportError:
-                logger.warning(
-                    "Could not import rich.console; skipping tool warnings",
-                    exc_info=True,
-                )
-            else:
-                try:
-                    warn_console = _Console(stderr=True)
-                    for tool in check_optional_tools():
-                        warn_console.print(
-                            f"[yellow]Warning:[/yellow] {format_tool_warning_cli(tool)}"
-                        )
-                except Exception:
-                    logger.debug("Failed to check for optional tools", exc_info=True)
             # Non-interactive mode - execute single task and exit
             from deepagents_cli.non_interactive import run_non_interactive
 

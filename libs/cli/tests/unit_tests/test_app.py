@@ -65,6 +65,19 @@ class TestInitialPromptOnMount:
 
         assert submitted == ["hello world"]
 
+    async def test_mount_does_not_notify_about_missing_optional_tools(self) -> None:
+        """Mount should not show startup warnings for missing optional tools."""
+        app = DeepAgentsApp()
+
+        with (
+            patch.dict("os.environ", {"DEEPAGENTS_NO_UPDATE_CHECK": "1"}),
+            patch.object(app, "notify") as notify_mock,
+        ):
+            async with app.run_test() as pilot:
+                await pilot.pause()
+
+        notify_mock.assert_not_called()
+
 
 class TestAppCSSValidation:
     """Test that app CSS is valid and doesn't cause runtime errors."""

@@ -13,8 +13,6 @@ from deepagents_cli.app import AppResult, DeepAgentsApp, run_textual_app
 from deepagents_cli.config import build_langsmith_thread_url, reset_langsmith_url_cache
 from deepagents_cli.main import (
     check_optional_tools,
-    format_tool_warning_cli,
-    format_tool_warning_tui,
     run_textual_cli_async,
 )
 
@@ -352,31 +350,3 @@ class TestCheckOptionalTools:
 
         assert missing == ["ripgrep"]
 
-
-class TestFormatToolWarnings:
-    """Tests for TUI and CLI warning formatters."""
-
-    def test_tui_format_contains_url(self) -> None:
-        """TUI format includes the install URL as plain text."""
-        msg = format_tool_warning_tui("ripgrep")
-        assert "https://github.com/BurntSushi/ripgrep#installation" in msg
-        assert "[link=" not in msg
-
-    def test_cli_format_contains_rich_link(self) -> None:
-        """CLI format wraps the URL in Rich `[link]` markup."""
-        msg = format_tool_warning_cli("ripgrep")
-        assert "[link=https://github.com/BurntSushi/ripgrep#installation]" in msg
-        assert "[/link]" in msg
-
-    def test_both_formats_contain_suppress_hint(self) -> None:
-        """Both formats include the config suppression hint."""
-        formatters = (format_tool_warning_tui, format_tool_warning_cli)
-        for fmt in formatters:
-            msg = fmt("ripgrep")
-            assert "\\[warnings]" in msg
-            assert 'suppress = \\["ripgrep"]' in msg
-
-    def test_unknown_tool_fallback(self) -> None:
-        """Unknown tools get a generic message."""
-        assert format_tool_warning_tui("foo") == "foo is not installed."
-        assert format_tool_warning_cli("foo") == "foo is not installed."
