@@ -255,8 +255,9 @@ def export_data(sql: str) -> dict[str, Any]:
         - url: Pre-signed download URL for the exported file (valid 12 hours)
 
     IMPORTANT: After using this tool:
-    1. Present the returned URL to the user as a download link
-    2. If the export failed, relay the error message to the user
+    1. The download URL is automatically displayed to the user by the interface — do NOT repeat or output the URL in your response.
+    2. Only tell the user the export succeeded and how many rows were exported.
+    3. If the export failed, relay the error message to the user.
     """
     import io
     import os
@@ -270,6 +271,33 @@ def export_data(sql: str) -> dict[str, Any]:
     _MINIO_INTERNAL = "172.17.3.61:8882"
     _MINIO_PUBLIC = "202.97.181.107:8882"
     _BUCKET = "minxinagent"
+    _MAX_ROWS = 100_000
+
+    _COLUMN_LABELS: dict[str, str] = {
+        "oriid": "诉求编号",
+        "tousu_id": "部门编号",
+        "tsly": "投诉来源",
+        "by_area": "城市",
+        "by_qx": "区县",
+        "ai_xiaoqu": "小区",
+        "mpeach_date": "诉求时间",
+        "mpeach_text": "诉求标题",
+        "mpeach_gut": "诉求内容",
+        "mpeach_dx": "一级定性",
+        "mpeach_wtlb": "二级定性",
+        "mpeach_wtxl": "三级定性",
+        "aj_blzt": "案件办理状态",
+        "sqxz": "诉求性质",
+        "blfs": "办理方式",
+        "jjqk": "部门解决情况",
+        "bl_bmmc": "办理部门",
+        "bj_date": "办结时间",
+        "fenpai_date": "分派时间",
+        "niban_date": "拟办时间",
+        "pingxing_date": "诉求人评价时间",
+        "manyidu": "满意度",
+        "tui_num": "退件次数",
+    }
 
     try:
         # 1. Execute SQL and load into DataFrame
@@ -284,13 +312,25 @@ def export_data(sql: str) -> dict[str, Any]:
         finally:
             conn.close()
 
-        # 2. Write DataFrame to Excel in memory (no temp file on disk)
+        # 2. Row limit check
+        if len(df) > _MAX_ROWS:
+            return {
+                "success": False,
+                "url": "",
+                "error": f"数据量 {len(df):,} 条超过导出上限（{_MAX_ROWS:,} 条），请缩小查询范围后重试。",
+            }
+
+        # 3. Keep only known columns and rename to Chinese labels
+        known_cols = [c for c in df.columns if c in _COLUMN_LABELS]
+        df = df[known_cols].rename(columns=_COLUMN_LABELS)
+
+        # 4. Write to Excel in memory
         buffer = io.BytesIO()
         df.to_excel(buffer, index=False, engine="openpyxl")
         buffer.seek(0)
         file_size = buffer.getbuffer().nbytes
 
-        # 3. Upload to MinIO via internal address
+        # 5. Upload to MinIO via internal address
         object_name = (
             f"exports/{pd.Timestamp.now().strftime('%Y%m%d')}/"
             f"{uuid.uuid4().hex[:12]}.xlsx"
@@ -311,7 +351,7 @@ def export_data(sql: str) -> dict[str, Any]:
             ),
         )
 
-        # 4. Generate presigned URL using public-facing client so the signature
+        # 6. Generate presigned URL using public-facing client so the signature
         #    is computed against the public host (replacing the host after signing
         #    would invalidate the signature).
         public_client = Minio(
