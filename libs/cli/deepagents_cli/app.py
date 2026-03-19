@@ -1679,7 +1679,12 @@ class DeepAgentsApp(App):
         """
         cmd = command.lower().strip()
 
-        if cmd in {"/quit", "/q"}:
+        if cmd == "/反馈":
+            await self._mount_message(UserMessage(command))
+            await self._mount_message(
+                AppMessage("反馈功能开发中，当前请加刘壮微信：15940581330")
+            )
+        elif cmd in {"/quit", "/q"}:
             self.exit()
         elif cmd == "/help":
             await self._mount_message(UserMessage(command))

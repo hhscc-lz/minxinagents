@@ -1229,6 +1229,21 @@ class TestTraceCommand:
             app_msgs = app.query(AppMessage)
             assert any("No active session" in str(w._content) for w in app_msgs)
 
+    async def test_feedback_command_shows_contact_message(self) -> None:
+        """`/反馈` should show the fixed contact message."""
+        app = DeepAgentsApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            await app._handle_command("/反馈")
+            await pilot.pause()
+
+            app_msgs = app.query(AppMessage)
+            assert any(
+                "反馈需求功能开发中，当前请联系159xxx" in str(w._content)
+                for w in app_msgs
+            )
+
 
 class TestRunAgentTaskMediaTracker:
     """Tests image tracker wiring from app into textual execution."""

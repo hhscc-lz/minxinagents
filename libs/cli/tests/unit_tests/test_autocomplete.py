@@ -159,6 +159,10 @@ class TestHelperFunctions:
 class TestSlashCommandController:
     """Tests for SlashCommandController."""
 
+    def test_only_feedback_command_is_exposed(self) -> None:
+        """Customer-facing slash command list should only expose `/反馈`."""
+        assert SLASH_COMMANDS == [("/反馈", "需求反馈", "")]
+
     @pytest.fixture
     def mock_view(self):
         """Create a mock CompletionView."""
