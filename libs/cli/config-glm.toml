@@ -1,0 +1,9 @@
+[models]
+default = "openai:glm-5"
+recent = "openai:glm-5"
+
+[models.providers.openai]
+base_url = "https://open.bigmodel.cn/api/paas/v4"
+models = [
+    "glm-5",
+]

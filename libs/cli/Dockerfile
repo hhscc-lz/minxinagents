@@ -8,6 +8,9 @@ COPY libs/cli /deps/cli
 COPY libs/deepagents /deps/deepagents
 # -- End of local package copy --
 
+RUN mkdir -p /root/.deepagents
+COPY libs/cli/config-glm.toml /root/.deepagents/config.toml
+
 # -- Installing all local dependencies --
 RUN for dep in /deps/*; do             echo "Installing $dep";             if [ -d "$dep" ]; then                 echo "Installing $dep";                 (cd "$dep" && PYTHONDONTWRITEBYTECODE=1 uv pip install --system --no-cache-dir -c /api/constraints.txt -e .);             fi;         done
 # -- End of local dependencies install --
