@@ -52,13 +52,13 @@
 
 ## 数据访问
 
-可用数据库为 SQL Server，连接信息在环境变量中：
+可用数据库为 **MySQL**，连接信息在环境变量中：
 
 ```python
-import os, pymssql, pandas as pd
+import os, pymysql, pandas as pd
 
-conn = pymssql.connect(
-    server=os.environ["DB_HOST"],
+conn = pymysql.connect(
+    host=os.environ["DB_HOST"],
     user=os.environ["DB_USER"],
     password=os.environ["DB_PASS"],
     database=os.environ["DB_NAME"]
@@ -67,33 +67,30 @@ df = pd.read_sql("你的SQL", conn)
 conn.close()
 ```
 
-### 工单主表：t_mxsq
+### 工单主表：t_complaints
 
-| 字段 | 说明 |
-|------|------|
-| oriid | 诉求编号（工单唯一标识） |
-| tousu_id | 部门编号 |
-| tsly | 投诉来源（来源渠道） |
-| by_area | 城市（值不含"市"字，例：沈阳、大连、鞍山） |
-| by_qx | 区县 |
-| ai_xiaoqu | 小区 |
-| mpeach_date | 诉求时间（工单创建时间） |
-| mpeach_text | 诉求标题 |
-| mpeach_gut | 诉求内容（诉求原文） |
-| mpeach_dx | 一级定性（一级分类） |
-| mpeach_wtlb | 二级定性（二级分类） |
-| mpeach_wtxl | 三级定性（三级分类） |
-| aj_blzt | 案件办理状态（= 50 表示已办结，其余值表示未办结） |
-| sqxz | 诉求性质（投诉 / 咨询 / 意见建议） |
-| blfs | 办理方式（直接回复件、一般直办件等） |
-| jjqk | 部门解决情况（承办部门答复内容） |
-| bl_bmmc | 办理部门（承办部门名称） |
-| bj_date | 办结时间（未办结时为 NULL） |
-| fenpai_date | 分派时间 |
-| niban_date | 拟办时间 |
-| pingxing_date | 诉求人评价时间 |
-| manyidu | 诉求人评价满意度 |
-| tui_num | 退件次数 |
+| 字段 | 说明 | 业务规则 |
+|------|------|------|
+| **complaint_id** | 诉求编号 | 全局唯一工单号 |
+| **process_id** | 投诉编号 | 部门办理流程号，用户常问此编号 |
+| **source_channel**| 诉求来源 | 渠道信息 |
+| **city** | 城市 | 值不含"市"字，例：沈阳、大连 |
+| **district** | 区县 | |
+| **community** | 小区 | 为空代表诉求内容无具体地址信息。|
+| **title** | 诉求标题 | |
+| **content** | 诉求原文 | |
+| **category_l1** | 一级分类 | |
+| **category_l2** | 二级分类 | |
+| **category_l3** | 三级分类 | |
+| **request_nature**| 诉求性质 | 枚举值：咨询 / 投诉 / 求助 / 建议 |
+| **handling_type** | 办理类型 | **直接回复件**（话务员回复）；**一般直办件**（下发部门） |
+| **is_completed** | 是否办结 | **1** 表示已办结，**0** 表示办理中 |
+| **satisfaction** | 满意度 | 枚举值：满意 / 不满意 / 理解 / 未评价 |
+| **department_name**| 承办部门 | 办理此工单的职能部门名称 |
+| **resolution** | 处理结果 | 部门给出的答复/办理内容 |
+| **created_at** | 创建时间 | 工单进入系统的初始时间 |
+| **completed_at** | 办结时间 | 工单生命周期结束的时间 |
+| **deadline** | 截止时间 | 判定是否超期的基准 |
 
 ### 数据使用规则
 
