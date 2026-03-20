@@ -273,32 +273,6 @@ def export_data(sql: str) -> dict[str, Any]:
     _BUCKET = "minxinagent"
     _MAX_ROWS = 100_000
 
-    _COLUMN_LABELS: dict[str, str] = {
-        "oriid": "诉求编号",
-        "tousu_id": "部门编号",
-        "tsly": "投诉来源",
-        "by_area": "城市",
-        "by_qx": "区县",
-        "ai_xiaoqu": "小区",
-        "mpeach_date": "诉求时间",
-        "mpeach_text": "诉求标题",
-        "mpeach_gut": "诉求内容",
-        "mpeach_dx": "一级定性",
-        "mpeach_wtlb": "二级定性",
-        "mpeach_wtxl": "三级定性",
-        "aj_blzt": "案件办理状态",
-        "sqxz": "诉求性质",
-        "blfs": "办理方式",
-        "jjqk": "部门解决情况",
-        "bl_bmmc": "办理部门",
-        "bj_date": "办结时间",
-        "fenpai_date": "分派时间",
-        "niban_date": "拟办时间",
-        "pingxing_date": "诉求人评价时间",
-        "manyidu": "满意度",
-        "tui_num": "退件次数",
-    }
-
     try:
         # 1. Execute SQL and load into DataFrame
         conn = pymssql.connect(
@@ -320,11 +294,7 @@ def export_data(sql: str) -> dict[str, Any]:
                 "error": f"数据量 {len(df):,} 条超过导出上限（{_MAX_ROWS:,} 条），请缩小查询范围后重试。",
             }
 
-        # 3. Keep only known columns and rename to Chinese labels
-        known_cols = [c for c in df.columns if c in _COLUMN_LABELS]
-        df = df[known_cols].rename(columns=_COLUMN_LABELS)
-
-        # 4. Write to Excel in memory
+        # 3. Write to Excel in memory
         buffer = io.BytesIO()
         df.to_excel(buffer, index=False, engine="openpyxl")
         buffer.seek(0)
