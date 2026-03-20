@@ -265,7 +265,7 @@ def export_data(sql: str) -> dict[str, Any]:
     from datetime import timedelta
 
     import pandas as pd
-    import pymssql
+    import pymysql
     from minio import Minio
 
     _MINIO_INTERNAL = "172.17.3.61:8882"
@@ -275,8 +275,8 @@ def export_data(sql: str) -> dict[str, Any]:
 
     try:
         # 1. Execute SQL and load into DataFrame
-        conn = pymssql.connect(
-            server=os.environ["DB_HOST"],
+        conn = pymysql.connect(
+            host=os.environ["DB_HOST"],
             user=os.environ["DB_USER"],
             password=os.environ["DB_PASS"],
             database=os.environ["DB_NAME"],
