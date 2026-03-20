@@ -647,7 +647,7 @@ class ToolCallMessage(Vertical):
         self._status = "success"
         self._set_visual_state("success")
         # For execute tools, hide raw output (code, stderr, etc.) from end users
-        if self._tool_name in {"shell", "bash", "execute", "export_data"}:
+        if self._tool_name in {"shell", "bash", "execute"}:
             self._output = ""
         else:
             self._output = result
@@ -742,6 +742,7 @@ class ToolCallMessage(Vertical):
             "write_todos": self._format_todos_output,
             "ls": self._format_ls_output,
             "read_file": self._format_file_output,
+            "export_data": self._format_export_data_output,
             "write_file": self._format_file_output,
             "edit_file": self._format_file_output,
             "grep": self._format_search_output,
@@ -1143,6 +1144,27 @@ class ToolCallMessage(Vertical):
             truncation = f"{len(lines) - max_lines} more lines"
 
         return FormattedOutput(content=content, truncation=truncation)
+
+    def _format_export_data_output(  # noqa: PLR6301
+        self, output: str, *, is_preview: bool = False
+    ) -> FormattedOutput:
+        """Format export_data result — show a clickable download link."""
+        try:
+            data = json.loads(output)
+        except (ValueError, json.JSONDecodeError):
+            return FormattedOutput(content=escape_markup(output))
+
+        if not data.get("success"):
+            error = escape_markup(str(data.get("error", "导出失败")))
+            return FormattedOutput(content=f"[red]{error}[/red]")
+
+        url = data.get("url", "")
+        if not url:
+            return FormattedOutput(content="[dim]导出成功（无下载链接）[/dim]")
+
+        return FormattedOutput(
+            content=f"[green]✓ 导出成功[/green]  [dim]{escape_markup(url)}[/dim]"
+        )
 
     def _update_output_display(self) -> None:
         """Update the output display based on expanded state."""

@@ -1219,6 +1219,21 @@ class TestTraceCommand:
                 for w in app_msgs
             )
 
+    async def test_intro_command_shows_agent_capabilities(self) -> None:
+        """`/介绍` should explain what the agent does and can produce."""
+        app = DeepAgentsApp()
+        async with app.run_test() as pilot:
+            await pilot.pause()
+
+            await app._handle_command("/介绍")
+            await pilot.pause()
+
+            app_msgs = app.query(AppMessage)
+            rendered = "\n".join(str(w._content) for w in app_msgs)
+            assert "我是民心智能体" in rendered
+            assert "12345 热线工单数据分析和报告撰写" in rendered
+            assert "日报、专题分析、领导参阅、典型案例和办理建议" in rendered
+
 
 class TestRunAgentTaskMediaTracker:
     """Tests image tracker wiring from app into textual execution."""

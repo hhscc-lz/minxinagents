@@ -1541,6 +1541,25 @@ class DeepAgentsApp(App):
             await self._mount_message(
                 AppMessage("反馈功能开发中，当前请加刘壮微信：15940581330")
             )
+        elif cmd == "/介绍":
+            await self._mount_message(
+                AppMessage(
+                    "民心智能体\n\n"
+                    "面向 12345 领域的通用分析助手。\n\n"
+                    "只要是 12345 工单相关的分析需求，都可以先直接问我。\n"
+                    "无论是日报、周报、专题分析，还是热点问题、异常波动、风险排查、典型案例、领导汇报材料，我都会尽量先给出可用结果。\n\n"
+                    "你不需要先判断这件事能不能做。\n"
+                    "先提需求，先看结果，再一起把场景做深、把能力做全。\n\n"
+                    "现阶段欢迎大量试用。\n"
+                    "你的真实问题越多，这个智能体就会越快变得更好用。\n\n"
+                    "你可以直接这样问：\n"
+                    "- 生成今天的热线日报\n"
+                    "- 分析本周物业投诉热点\n"
+                    "- 排查最近三天是否有欠薪风险\n"
+                    "- 按区县比较供暖诉求变化\n"
+                    "- 帮我整理一个领导汇报专题"
+                )
+            )
         elif cmd in {"/quit", "/q"}:
             self.exit()
         elif cmd == "/help":
@@ -3080,9 +3099,9 @@ class DeepAgentsApp(App):
             return
         self.call_after_refresh(self._chat_input.focus_input)
 
-    # def on_mouse_up(self, event: MouseUp) -> None:  # noqa: ARG002  # Textual event handler signature
-    #     """Copy selection to clipboard on mouse release."""
-    #     copy_selection_to_clipboard(self)
+    def on_mouse_up(self, event: MouseUp) -> None:  # noqa: ARG002  # Textual event handler signature
+        """Copy selection to clipboard on mouse release."""
+        copy_selection_to_clipboard(self)
 
     # =========================================================================
     # Model Switching

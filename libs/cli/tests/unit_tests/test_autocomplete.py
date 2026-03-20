@@ -159,9 +159,12 @@ class TestHelperFunctions:
 class TestSlashCommandController:
     """Tests for SlashCommandController."""
 
-    def test_only_feedback_command_is_exposed(self) -> None:
-        """Customer-facing slash command list should only expose `/反馈`."""
-        assert SLASH_COMMANDS == [("/反馈", "需求反馈", "")]
+    def test_customer_facing_commands_are_exposed(self) -> None:
+        """Customer-facing slash command list should expose intro and feedback."""
+        assert SLASH_COMMANDS == [
+            ("/介绍", "查看智能体介绍", "关于 about 智能体 能力 功能 做什么 用途"),
+            ("/反馈", "问题反馈", ""),
+        ]
 
     @pytest.fixture
     def mock_view(self):
@@ -201,6 +204,14 @@ class TestSlashCommandController:
         mock_view.render_completion_suggestions.assert_called()
         suggestions = mock_view.render_completion_suggestions.call_args[0][0]
         assert any("/version" in s[0] for s in suggestions)
+
+    def test_filters_intro_command_by_prefix(self, controller, mock_view):
+        """Filters `/介绍` based on typed prefix."""
+        controller.on_text_changed("/介", 2)
+
+        mock_view.render_completion_suggestions.assert_called()
+        suggestions = mock_view.render_completion_suggestions.call_args[0][0]
+        assert any("/介绍" in s[0] for s in suggestions)
 
     def test_shows_all_commands_on_slash_only(self, controller, mock_view):
         """Shows all commands when just / is typed."""

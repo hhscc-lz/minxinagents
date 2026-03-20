@@ -95,6 +95,7 @@ class CompletionController(Protocol):
 # ============================================================================
 
 SLASH_COMMANDS: list[tuple[str, str, str]] = [
+    ("/介绍", "查看智能体介绍", "关于 about 智能体 能力 功能 做什么 用途"),
     ("/反馈", "问题反馈", ""),
 ]
 """Built-in slash commands: (name, description, hidden_keywords).
