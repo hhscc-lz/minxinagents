@@ -166,4 +166,10 @@ def build_welcome_footer() -> Text:
     footer.append(
         "\n民心智能体已就绪，请问有什么可以帮您？\n", style=COLORS["primary"]
     )
+    footer.append("参考示例：\n", style="bold #d7efe9")
+    footer.append("• 生成今天的全省热线日报\n", style="dim")
+    footer.append("• 分析本周沈阳市物业投诉热点\n", style="dim")
+    footer.append("• 排查最近三天铁西区是否有欠薪风险\n", style="dim")
+    footer.append("• 按区县比较大连市供暖诉求变化\n", style="dim")
+    footer.append("• 帮我整理一个领导汇报专题\n", style="dim")
     return footer

@@ -35,6 +35,8 @@ class TestWelcomeBanner:
 
         assert isinstance(banner, Text)
         assert "民心智能体已就绪，请问有什么可以帮您？" in banner.plain
+        assert "参考示例：" in banner.plain
+        assert "生成今天的全省热线日报" in banner.plain
         assert "LangSmith" not in banner.plain
         assert "会话：" not in banner.plain
         assert "MCP" not in banner.plain
@@ -76,6 +78,8 @@ class TestWelcomeFooterHelpers:
         footer = build_welcome_footer()
         assert isinstance(footer, Text)
         assert "民心智能体已就绪，请问有什么可以帮您？" in footer.plain
+        assert "参考示例：" in footer.plain
+        assert "分析本周沈阳市物业投诉热点" in footer.plain
 
     def test_build_connecting_footer_contains_loading_text(self) -> None:
         """Connecting footer should use the Chinese loading text."""
