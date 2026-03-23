@@ -1,6 +1,8 @@
 volumes:
   langgraph-data:
     driver: local
+  deepagents-sessions:
+    driver: local
 
 services:
   langgraph-redis:
@@ -34,7 +36,7 @@ services:
     image: ${IMAGE_NAME:-minxinagent:v0.0.1}
     restart: unless-stopped
     ports:
-      - "${PUBLIC_PORT:-8000}:8000"
+      - "127.0.0.1:8002:8000"
     depends_on:
       langgraph-redis:
         condition: service_healthy
@@ -42,6 +44,18 @@ services:
         condition: service_healthy
     env_file:
       - .env
+    volumes:
+      - deepagents-sessions:/root/.deepagents
     environment:
       REDIS_URI: redis://langgraph-redis:6379
       DATABASE_URI: postgres://postgres:postgres@langgraph-postgres:5432/postgres?sslmode=disable
+
+  minxinagent-admin:
+    image: ${ADMIN_IMAGE_NAME:-minxinagent-admin:v1.0.2}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${ADMIN_PORT:-8001}:8001"
+    volumes:
+      - deepagents-sessions:/root/.deepagents
+    environment:
+      PYTHONUNBUFFERED: "1"
