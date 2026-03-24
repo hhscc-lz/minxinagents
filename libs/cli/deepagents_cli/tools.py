@@ -236,18 +236,20 @@ def fetch_url(url: str, timeout: int = 30) -> dict[str, Any]:
         return {"error": f"Fetch URL error: {e!s}", "url": url}
 
 
-def export_data(sql: str) -> dict[str, Any]:
-    """Execute a SQL query and export the result set to object storage.
+def export_data(query: dict) -> dict[str, Any]:
+    """Execute an Elasticsearch DSL query and export the result set to object storage.
 
-    This tool runs the given SELECT statement, writes the results to an Excel file,
-    and uploads it to the configured object storage (MinIO).  The caller receives
-    a pre-signed download URL valid for 12 hours.
+    This tool runs the given ES search query against the t_complaints index,
+    writes the results to an Excel file, and uploads it to the configured object
+    storage (MinIO). The caller receives a pre-signed download URL valid for 12 hours.
 
     Use this tool when the user asks to export, download, or save query results
     — for example detail records filtered by region, date range, or status.
 
     Args:
-        sql: The SQL SELECT statement to execute.
+        query: Elasticsearch search body (the dict passed to es.search body parameter).
+               Should be a standard ES Query DSL dict, e.g.:
+               {"query": {"bool": {"filter": [...]}}, "_source": [...]}
 
     Returns:
         Dictionary containing:
@@ -265,7 +267,8 @@ def export_data(sql: str) -> dict[str, Any]:
     from datetime import timedelta
 
     import pandas as pd
-    import pymysql
+    from elasticsearch import Elasticsearch
+    from elasticsearch import helpers as es_helpers
     from minio import Minio
 
     _MINIO_INTERNAL = "172.17.3.61:8882"
@@ -274,25 +277,33 @@ def export_data(sql: str) -> dict[str, Any]:
     _MAX_ROWS = 100_000
 
     try:
-        # 1. Execute SQL and load into DataFrame
-        conn = pymysql.connect(
-            host=os.environ["DB_HOST"],
-            user=os.environ["DB_USER"],
-            password=os.environ["DB_PASS"],
-            database=os.environ["DB_NAME"],
+        # 1. Query ES and load into DataFrame via scan (handles pagination)
+        es = Elasticsearch(
+            os.environ["ES_HOST"],
+            basic_auth=(os.environ["ES_USER"], os.environ["ES_PASS"]),
+            ca_certs=os.environ["ES_CA_CERT"],
+            request_timeout=60,
         )
-        try:
-            df = pd.read_sql(sql, conn)
-        finally:
-            conn.close()
+        hits = es_helpers.scan(
+            es,
+            index="t_complaints",
+            query=query,
+            size=500,
+        )
+        rows = []
+        for hit in hits:
+            rows.append(hit["_source"])
+            if len(rows) > _MAX_ROWS:
+                return {
+                    "success": False,
+                    "url": "",
+                    "error": f"数据量超过导出上限（{_MAX_ROWS:,} 条），请缩小查询范围后重试。",
+                }
+        df = pd.DataFrame(rows)
 
         # 2. Row limit check
-        if len(df) > _MAX_ROWS:
-            return {
-                "success": False,
-                "url": "",
-                "error": f"数据量 {len(df):,} 条超过导出上限（{_MAX_ROWS:,} 条），请缩小查询范围后重试。",
-            }
+        if df.empty:
+            return {"success": False, "url": "", "error": "查询结果为空，无数据可导出。"}
 
         # 3. Write to Excel in memory
         buffer = io.BytesIO()

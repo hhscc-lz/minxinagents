@@ -52,49 +52,50 @@
 
 ## 数据访问
 
-可用数据库为 **MySQL**，连接信息在环境变量中：
+可用数据源为 **Elasticsearch**，连接信息在环境变量中：
 
 ```python
-import os, pymysql, pandas as pd
+from elasticsearch import Elasticsearch
+import os
 
-conn = pymysql.connect(
-    host=os.environ["DB_HOST"],
-    user=os.environ["DB_USER"],
-    password=os.environ["DB_PASS"],
-    database=os.environ["DB_NAME"]
+es = Elasticsearch(
+    os.environ["ES_HOST"],
+    basic_auth=(os.environ["ES_USER"], os.environ["ES_PASS"]),
+    ca_certs=os.environ["ES_CA_CERT"],
+    request_timeout=60,
 )
-df = pd.read_sql("你的SQL", conn)
-conn.close()
 ```
 
-### 工单主表：t_complaints
+索引名：`t_complaints`
 
-| 字段 | 说明 | 业务规则 |
-|------|------|------|
-| **complaint_id** | 诉求编号 | 全局唯一工单号 |
-| **process_id** | 投诉编号 | 部门办理流程号，用户常问此编号 |
-| **source_channel**| 诉求来源 | 渠道信息 |
-| **city** | 城市 | 值不含"市"字，例：沈阳、大连 |
-| **district** | 区县 | |
-| **community** | 小区 | 为空代表诉求内容无具体地址信息。|
-| **title** | 诉求标题 | |
-| **content** | 诉求原文 | |
-| **category_l1** | 一级分类 | |
-| **category_l2** | 二级分类 | |
-| **category_l3** | 三级分类 | |
-| **request_nature**| 诉求性质 | 枚举值：咨询 / 投诉 / 求助 / 建议 |
-| **handling_type** | 办理类型 | **直接回复件**（话务员回复）；**一般直办件**（下发部门） |
-| **is_completed** | 是否办结 | **1** 表示已办结，**0** 表示办理中 |
-| **satisfaction** | 满意度 | 枚举值：满意 / 不满意 / 理解 / 未评价 |
-| **department_name**| 承办部门 | 办理此工单的职能部门名称 |
-| **resolution** | 处理结果 | 部门给出的答复/办理内容 |
-| **created_at** | 创建时间 | 工单进入系统的初始时间 |
-| **completed_at** | 办结时间 | 工单生命周期结束的时间 |
-| **deadline** | 截止时间 | 判定是否超期的基准 |
+### 字段 Mapping
+
+| 字段 | ES 类型 | 说明 | 业务规则 |
+|------|---------|------|---------|
+| **complaint_id** | keyword | 诉求编号 | 全局唯一工单号 |
+| **process_id** | keyword | 投诉编号 | 部门办理流程号，用户常问此编号 |
+| **source_channel** | keyword | 诉求来源 | 渠道信息 |
+| **city** | keyword | 城市 | 值不含"市"字，例：沈阳、大连 |
+| **district** | keyword | 区县 | |
+| **community** | keyword | 小区 | 为空代表诉求内容无具体地址信息 |
+| **title** | keyword | 诉求标题 | 模糊匹配用 `wildcard`，如 `{"wildcard": {"title": "*停水*"}}` |
+| **content** | keyword | 诉求原文 | 模糊匹配用 `wildcard` |
+| **category_l1** | keyword | 一级分类 | |
+| **category_l2** | keyword | 二级分类 | |
+| **category_l3** | keyword | 三级分类 | |
+| **request_nature** | keyword | 诉求性质 | 枚举值：咨询 / 投诉 / 求助 / 建议 |
+| **handling_type** | keyword | 办理类型 | **直接回复件**（话务员回复）；**一般直办件**（下发部门） |
+| **is_completed** | integer | 是否办结 | **1** 表示已办结，**0** 表示办理中 |
+| **satisfaction** | keyword | 满意度 | 枚举值：满意 / 不满意 / 理解 / 未评价 |
+| **department_name** | keyword | 承办部门 | 办理此工单的职能部门名称 |
+| **resolution** | keyword | 处理结果 | 模糊匹配用 `wildcard` |
+| **created_at** | date | 创建时间 | 格式：yyyy-MM-dd HH:mm:ss |
+| **completed_at** | date | 办结时间 | 工单生命周期结束的时间 |
+| **deadline** | date | 截止时间 | 判定是否超期的基准 |
 
 ### 数据使用规则
 
-- **严禁编造数据**。所有数字必须来自数据库查询结果。
+- **严禁编造数据**。所有数字必须来自 ES 查询结果。
 - 每次查询后用 `print()` 输出结果，确认数据正确后再用于报告。
 
 ## 工具使用

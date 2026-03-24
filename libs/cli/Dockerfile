@@ -1,15 +1,17 @@
 FROM langchain/langgraph-api:3.11
 
 
-COPY libs/cli/validation.cpython-311.pyc /api/langgraph_license/validation.pyc
+# COPY libs/cli/validation.cpython-311.pyc /api/langgraph_license/validation.pyc
 
 # -- Adding local packages from monorepo --
 COPY libs/cli /deps/cli
 COPY libs/deepagents /deps/deepagents
 # -- End of local package copy --
+COPY cert /deps/cert
 
 RUN mkdir -p /root/.deepagents
-COPY libs/cli/config-glm.toml /root/.deepagents/config.toml
+# COPY libs/cli/config-glm.toml /root/.deepagents/config.toml
+COPY libs/cli/config-gpt.toml /root/.deepagents/config.toml
 
 # -- Installing all local dependencies --
 RUN for dep in /deps/*; do             echo "Installing $dep";             if [ -d "$dep" ]; then                 echo "Installing $dep";                 (cd "$dep" && PYTHONDONTWRITEBYTECODE=1 uv pip install --system --no-cache-dir -c /api/constraints.txt -e .);             fi;         done
