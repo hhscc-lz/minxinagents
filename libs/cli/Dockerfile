@@ -7,7 +7,7 @@ FROM langchain/langgraph-api:3.11
 COPY libs/cli /deps/cli
 COPY libs/deepagents /deps/deepagents
 # -- End of local package copy --
-COPY cert /deps/cert
+COPY libs/cli/cert /deps/cli/cert
 
 RUN mkdir -p /root/.deepagents
 # COPY libs/cli/config-glm.toml /root/.deepagents/config.toml

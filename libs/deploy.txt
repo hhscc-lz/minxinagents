@@ -3,24 +3,24 @@
 docker buildx build \
 --platform linux/amd64 \
 -f libs/cli/Dockerfile \
--t minxinagent:v1.0.2 \
---output type=docker,dest=./minxinagent-v1.0.2-linux-amd64.tar \
+-t minxinagent:v1.0.3 \
+--output type=docker,dest=./minxinagent-v1.0.3-linux-amd64.tar \
 .
 
 docker buildx build \
 --platform linux/amd64 \
 -f libs/admin/Dockerfile \
--t minxinagent-admin:v1.0.2 \
---output type=docker,dest=./minxinagent-admin-v1.0.2-linux-amd64.tar \
+-t minxinagent-admin:v1.0.3 \
+--output type=docker,dest=./minxinagent-admin-v1.0.3-linux-amd64.tar \
 libs/admin
 
 # Linux server deploy
-scp minxinagent-v1.0.2-linux-amd64.tar root@172.17.3.61:/app/deploy/minxinagents/
-scp minxinagent-admin-v1.0.2-linux-amd64.tar root@172.17.3.61:/app/deploy/minxinagents/
+scp minxinagent-v1.0.3-linux-amd64.tar root@172.17.3.61:/app/deploy/minxinagents/
+scp minxinagent-admin-v1.0.3-linux-amd64.tar root@172.17.3.61:/app/deploy/minxinagents/
 scp libs/cli/.env.example root@172.17.3.61:/app/deploy/minxinagents/.env
 
-docker load -i minxinagent-v1.0.2-linux-amd64.tar
-docker load -i minxinagent-admin-v1.0.2-linux-amd64.tar
+docker load -i minxinagent-v1.0.3-linux-amd64.tar
+docker load -i minxinagent-admin-v1.0.3-linux-amd64.tar
 
 docker compose up -d
 
