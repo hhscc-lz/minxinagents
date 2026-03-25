@@ -436,7 +436,6 @@ class ThreadSelectorScreen(ModalScreen[str | None]):
         Binding("pagedown", "page_down", "Page down", show=False, priority=True),
         Binding("enter", "select", "Select", show=False, priority=True),
         Binding("escape", "cancel", "Cancel", show=False, priority=True),
-        Binding("ctrl+d", "delete_thread", "Delete", show=False, priority=True),
         Binding("tab", "focus_next_filter", "Next filter", show=False, priority=True),
         Binding(
             "shift+tab",
@@ -710,7 +709,6 @@ class ThreadSelectorScreen(ModalScreen[str | None]):
         lines = (
             f"{glyphs.arrow_up}/{glyphs.arrow_down} 上下导航"
             f" {glyphs.bullet} Enter 进入"
-            f" {glyphs.bullet} Ctrl+D 删除"
             f" {glyphs.bullet} Esc 取消"
         )
         limit = self._effective_thread_limit()
