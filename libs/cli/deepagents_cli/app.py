@@ -926,22 +926,7 @@ class DeepAgentsApp(App):
             logger.debug("Could not prewarm model caches", exc_info=True)
 
     async def _check_for_updates(self) -> None:
-        """Check PyPI for a newer deepagents-cli version and notify the user."""
-        try:
-            from deepagents_cli.update_check import is_update_available
-
-            available, latest = await asyncio.to_thread(is_update_available)
-            if available:
-                from deepagents_cli._version import __version__ as cli_version
-
-                self.notify(
-                    f"Update available: v{latest} (current: v{cli_version}). "
-                    "Run: uv tool upgrade deepagents-cli",
-                    severity="information",
-                    timeout=15,
-                )
-        except Exception:
-            logger.debug("Background update check failed", exc_info=True)
+        """版本更新检查已禁用。"""
 
     def on_scroll_up(self, _event: ScrollUp) -> None:
         """Handle scroll up to check if we need to hydrate older messages."""
@@ -1553,8 +1538,8 @@ class DeepAgentsApp(App):
             await self._mount_message(UserMessage(command))
             help_text = Text(
                 "Commands: /quit, /clear, /compact, /mcp, "
-                "/model [--model-params JSON] [--default], /reload, /remember, "
-                "/tokens, /threads, /trace, /changelog, /docs, /feedback, /help\n\n"
+                "/model [--model-params JSON] [--default], /reload, /记住, "
+                "/tokens, /threads, /trace, /docs, /feedback, /help\n\n"
                 "Interactive Features:\n"
                 "  Enter           Submit your message\n"
                 f"  {newline_shortcut():<15} Insert newline\n"
@@ -1567,38 +1552,8 @@ class DeepAgentsApp(App):
             help_text.stylize(f"link {DOCS_URL}", help_text.plain.index(DOCS_URL))
             await self._mount_message(AppMessage(help_text))
 
-        elif cmd in {"/changelog", "/docs", "/feedback"}:
+        elif cmd in {"/docs", "/feedback"}:
             await self._open_url_command(command, cmd)
-        elif cmd == "/version":
-            await self._mount_message(UserMessage(command))
-            # Show CLI and SDK package versions
-            try:
-                from deepagents_cli._version import (
-                    __version__ as cli_version,
-                )
-
-                cli_line = f"deepagents-cli version: {cli_version}"
-            except ImportError:
-                logger.debug("deepagents_cli._version module not found")
-                cli_line = "deepagents-cli version: unknown"
-            except Exception:
-                logger.warning("Unexpected error looking up CLI version", exc_info=True)
-                cli_line = "deepagents-cli version: unknown"
-            try:
-                from importlib.metadata import (
-                    PackageNotFoundError,
-                    version as _pkg_version,
-                )
-
-                sdk_version = _pkg_version("deepagents")
-                sdk_line = f"deepagents (SDK) version: {sdk_version}"
-            except PackageNotFoundError:
-                logger.debug("deepagents SDK package not found in environment")
-                sdk_line = "deepagents (SDK) version: unknown"
-            except Exception:
-                logger.warning("Unexpected error looking up SDK version", exc_info=True)
-                sdk_line = "deepagents (SDK) version: unknown"
-            await self._mount_message(AppMessage(f"{cli_line}\n{sdk_line}"))
         elif cmd in {"/clear", "/新会话"}:
             self._pending_messages.clear()
             self._queued_widgets.clear()
