@@ -385,117 +385,105 @@ _COMMAND_URLS: dict[str, str] = {
 
 # Prompt for /remember command - triggers agent to review conversation and update
 # memory/skills
-REMEMBER_PROMPT = """Review our conversation and capture valuable knowledge. Focus especially on **best practices** we discussed or discovered—these are the most important things to preserve.
+REMEMBER_PROMPT = """回顾我们本次对话，提炼值得长期保留的知识。只保存对未来分析有指导意义的内容，忽略一次性的查询和临时讨论。
 
-## Step 1: Identify Best Practices and Key Learnings
+## 第一步：从对话中识别四类知识
 
-Scan the conversation for:
+### A. 分析偏好（用户的个人习惯）
+- 分析顺序偏好（如"先看全省总量，再按城市下钻"）
+- 关注的核心指标（如"重点看超期率和不满意率的环比变化"）
+- 输出格式偏好（如"用表格展示、数据保留一位小数"）
+- 聚焦范围（如"主要关注沈阳和大连"）
 
-### Best Practices (highest priority)
-- **Patterns that worked well** - approaches, techniques, or solutions we found effective
-- **Anti-patterns to avoid** - mistakes, gotchas, or approaches that caused problems
-- **Quality standards** - criteria we established for good code, documentation, or processes
-- **Decision rationale** - why we chose one approach over another
+### B. 业务规则（对话中确认的数据口径和判断标准）
+- 统计口径（如"满意度计算时排除未评价"）
+- 异常判断标准（如"环比增长超过 20% 标记为异常"）
+- 数据含义共识（如"community 为空表示无具体地址，不是数据缺失"）
 
-### Other Valuable Knowledge
-- Coding conventions and style preferences
-- Project architecture decisions
-- Workflows and processes we developed
-- Tools, libraries, or techniques worth remembering
-- Feedback I gave about your behavior or outputs
+### C. 有效的分析方法（被验证有效的分析路径）
+- 切入角度（如"分析噪音投诉，先按时段分布看是否集中在夜间"）
+- 交叉维度组合（如"部门 × 满意度 交叉分析能发现服务短板"）
+- 异常定位方法（如"总量突增时，逐级下钻分类体系比看城市分布更快定位原因"）
 
-## Step 2: Decide Where to Store Each Learning
+### D. 用户反馈（对智能体行为的纠正或肯定）
+- 纠正："不要每次都解释分析步骤，直接给结论"
+- 肯定："这个表格格式很清楚，以后都这样"
+- 约束："不需要给处置建议，只提供数据分析"
 
-For each best practice or learning, choose the right destination:
+## 第二步：判断存储位置
 
-### -> Memory (AGENTS.md) for preferences and guidelines
-Use memory when the knowledge is:
-- A preference or guideline (not a multi-step process)
-- Something to always keep in mind
-- A simple rule or pattern
+### → Memory（AGENTS.md）
+**判断标准**：一句话能说清的偏好、规则、反馈。
 
-**Global** (`~/.deepagents/agent/AGENTS.md`): Universal preferences across all projects
-**Project** (`.deepagents/AGENTS.md`): Project-specific conventions and decisions
+| 知识类型 | 正确粒度示例 | 过粗（不要） | 过细（不要） |
+|---------|------------|------------|------------|
+| 分析偏好 | 分析时先查全省总量，再按城市下钻，最后看区县 | 用户喜欢下钻 | 用户在3月25日分析沈阳时先看了总量 |
+| 业务规则 | 满意度统计排除"未评价"，只计算有效评价 | 注意满意度 | 满意度SQL要加WHERE satisfaction != '未评价' |
+| 用户反馈 | 输出分析结果时不要解释分析过程，直接给结论和数据 | 用户要简洁 | 用户在第三轮对话说了不要解释 |
 
-### -> Skill for reusable workflows and methodologies
-**Create a skill when** we developed:
-- A multi-step process worth reusing
-- A methodology for a specific type of task
-- A workflow with best practices baked in
-- A procedure that should be followed consistently
+写入位置：项目级 `.deepagents/AGENTS.md`
 
-Skills are more powerful than memory entries because they can encode **how** to do something well, not just **what** to remember.
+### → Skill
+**判断标准**：完整的多步骤分析流程，有固定的指标体系、分析步骤和输出结构。
 
-## Step 3: Create Skills for Significant Best Practices
+| 适合创建 Skill 的场景 | 不适合的场景 |
+|---------------------|------------|
+| 日报有完整的分析框架（总量→分布→热点→案例→风险） | 只是查了一下今天的总量 |
+| 部门考核有固定指标体系（办结率→超期率→满意度→排名） | 只看了某个部门的办结率 |
+| 专项分析形成了可复用的方法论 | 临时追问了一个具体问题 |
 
-If we established best practices around a workflow or process, capture them in a skill.
+创建位置：`.deepagents/skills/<名称>/SKILL.md`
 
-**Example:** If we discussed best practices for code review, create a `code-review` skill that encodes those practices into a reusable workflow.
-
-### Skill Location
-`<project>/.deepagents/skills/<skill-name>/SKILL.md`
-
-### Skill Structure
-```
-skill-name/
-├── SKILL.md          (required - main instructions with best practices)
-├── scripts/          (optional - executable code)
-├── references/       (optional - detailed documentation)
-└── assets/           (optional - templates, examples)
-```
-
-### SKILL.md Format
+Skill 文件格式：
 ```markdown
 ---
 name: skill-name
-description: "What this skill does AND when to use it. Include triggers like 'when the user asks to X' or 'when working with Y'. This description determines when the skill activates."
+description: "做什么 + 触发条件。如：'生成12345热线日报。用户说日报、今日数据、每日汇报时触发。'"
 ---
 
-# Skill Name
+# 名称
 
-## Overview
-Brief explanation of what this skill accomplishes.
+## 分析目标
+这个分析要回答什么核心问题。
 
-## Best Practices
-Capture the key best practices upfront:
-- Best practice 1: explanation
-- Best practice 2: explanation
+## 核心指标
+- 指标1：口径说明
+- 指标2：口径说明
 
-## Process
-Step-by-step instructions (imperative form):
-1. First, do X
-2. Then, do Y
-3. Finally, do Z
+## 分析步骤
+1. 第一步...
+2. 第二步...
 
-## Common Pitfalls
-- Pitfall to avoid and why
-- Another anti-pattern we discovered
+## 输出格式
+最终报告的结构和样式要求。
+
+## 注意事项
+- 容易犯的错误
+- 特殊数据处理规则
 ```
 
-### Key Principles
-1. **Encode best practices prominently** - Put them near the top so they guide the entire workflow
-2. **Concise is key** - Only include non-obvious knowledge. Every paragraph should justify its token cost.
-3. **Clear triggers** - The description determines when the skill activates. Be specific.
-4. **Imperative form** - Write as commands: "Create a file" not "You should create a file"
-5. **Include anti-patterns** - What NOT to do is often as valuable as what to do
+## 第三步：以下内容不要保存
 
-## Step 4: Update Memory for Simpler Learnings
+- **具体数字和查询结果**（数据每天变化，保存无意义）
+- **中间调试过程**（ES 查询报错、超时重试等）
+- **一次性的筛选条件**（"查3月沈阳的数据"不值得保存）
+- **系统提示词中已有的规则**（如字段说明、连接方式，已在 prompt 中）
+- **不完整的分析**（对话中途放弃的分析路径）
 
-For preferences, guidelines, and simple rules that don't warrant a full skill:
+## 第四步：执行保存
 
-```markdown
-## Best Practices
-- When doing X, always Y because Z
-- Avoid A because it leads to B
-```
+1. **先读取**现有的 `.deepagents/AGENTS.md` 和 `.deepagents/skills/` 目录
+2. 如果已有相似条目，**更新而非新增**，避免重复
+3. Memory 用 `edit_file` 追加到 AGENTS.md 对应分类下
+4. Skill 用 `write_file` 创建完整的 SKILL.md
 
-Use `edit_file` to update existing files or `write_file` to create new ones.
+## 第五步：用中文向用户汇报
 
-## Step 5: Summarize Changes
-
-List what you captured and where you stored it:
-- Skills created (with key best practices encoded)
-- Memory entries added (with location)
+格式：
+- 保存了 N 条 Memory：逐条列出（每条一句话）
+- 创建了 N 个 Skill：名称 + 一句话说明
+- 跳过了什么：简述原因（如"本次查询为一次性需求，未保存"）
+- 如有更新已有条目，说明更新了什么
 """  # noqa: E501
 
 
@@ -1545,11 +1533,18 @@ class DeepAgentsApp(App):
             await self._mount_message(
                 AppMessage(
                     "民心智能体\n\n"
-                    "民心智能体是面向 12345 领域的对话式智能分析助手。\n\n"
-                    "不同于固定功能、固定模板的分析方式，民心智能体支持通过自然语言直接提出分析需求，并可根据你的关注重点动态调整分析内容。\n\n"
-                    "你可以像与分析人员讨论工作一样，逐步提出问题、补充条件、限定范围、追问原因、调整口径。\n"
-                    "智能体将围绕你的意图，结合全省、城市、区县等范围以及相关业务维度，组织分析过程并生成结果。\n\n"
-                    "可用于热线工单数据的统计分析、趋势研判、热点识别、风险排查、案例提炼和报告撰写，可输出日报、周报、专题分析、领导参阅、情况汇总、典型案例和办理建议等内容。"
+                    "面向 12345 业务的对话式智能分析与辅助研判系统。\n\n"
+                    "这不是一个新的分析按钮，而是一种新的工作方式——\n"
+                    "过去，业务人员必须围着系统的菜单走；现在，系统跟着业务人员的思路走。\n\n"
+                    "你可以像与分析人员讨论工作一样，逐步提出问题、追问原因、调整口径、限定范围，\n"
+                    "智能体将围绕你的意图持续分析，形成可汇报的结论，并在结论之后继续生成佐证和支撑明细。\n\n"
+                    "适用层级：省平台 / 市平台 / 区县平台 / 办理部门\n\n"
+                    "典型用法：\n"
+                    "  · 生成今天的全省热线日报，突出热点诉求和风险提示\n"
+                    "  · 分析本周沈阳市物业投诉热点，说明为什么上升、集中在哪些区县\n"
+                    "  · 排查最近三天铁西区是否有欠薪风险，定位重点街道和项目\n"
+                    "  · 分析本月住建局超期件和不满意件的主要原因，给出整改建议\n\n"
+                    "让业务人员从找数据，走向提问题。"
                 )
             )
         elif cmd in {"/quit", "/q"}:
@@ -1604,7 +1599,7 @@ class DeepAgentsApp(App):
                 logger.warning("Unexpected error looking up SDK version", exc_info=True)
                 sdk_line = "deepagents (SDK) version: unknown"
             await self._mount_message(AppMessage(f"{cli_line}\n{sdk_line}"))
-        elif cmd == "/clear":
+        elif cmd in {"/clear", "/新会话"}:
             self._pending_messages.clear()
             self._queued_widgets.clear()
             await self._clear_messages()
@@ -1626,7 +1621,7 @@ class DeepAgentsApp(App):
         elif cmd == "/compact":
             await self._mount_message(UserMessage(command))
             await self._handle_compact()
-        elif cmd == "/threads":
+        elif cmd in {"/threads", "/历史会话"}:
             await self._show_thread_selector()
         elif cmd == "/trace":
             await self._handle_trace_command(command)
@@ -1675,23 +1670,25 @@ class DeepAgentsApp(App):
                     parts.append(model_name)
 
                 await self._mount_message(AppMessage(" · ".join(parts)))
-        elif cmd == "/remember" or cmd.startswith("/remember "):
-            # Extract any additional context after /remember
-            additional_context = ""
-            if cmd.startswith("/remember "):
-                additional_context = command.strip()[len("/remember ") :].strip()
-
-            # Build the final prompt
-            if additional_context:
-                final_prompt = (
-                    f"{REMEMBER_PROMPT}\n\n"
-                    f"**Additional context from user:** {additional_context}"
-                )
-            else:
-                final_prompt = REMEMBER_PROMPT
+        elif cmd == "/记住":
+            # TODO: 后续可开启用户自定义补充上下文功能。
+            # 用法：/记住 <附加说明>，例如"/记住 重点保存今天关于超期率的分析偏好"
+            # 开启时取消下方注释，并将 elif 条件改为：
+            #   cmd == "/记住" or cmd.startswith("/记住 ")
+            #
+            # additional_context = ""
+            # if cmd.startswith("/记住 "):
+            #     additional_context = command.strip()[len("/记住 "):].strip()
+            # if additional_context:
+            #     final_prompt = (
+            #         f"{REMEMBER_PROMPT}\n\n"
+            #         f"**用户补充说明：** {additional_context}"
+            #     )
+            # else:
+            #     final_prompt = REMEMBER_PROMPT
 
             # Send as a user message to the agent
-            await self._handle_user_message(final_prompt)
+            await self._handle_user_message(REMEMBER_PROMPT)
             return  # _handle_user_message already mounts the message
         elif cmd == "/mcp":
             await self._show_mcp_viewer()
