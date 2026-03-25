@@ -1694,9 +1694,23 @@ class DeepAgentsApp(App):
                 str(skills_path / "<名称>/SKILL.md"),
             )
 
-            # Send as a user message to the agent
-            await self._handle_user_message(final_prompt)
-            return  # _handle_user_message already mounts the message
+            # 向用户显示友好提示，提示词静默发给 Agent，不渲染为消息气泡
+            await self._mount_message(UserMessage("/记住"))
+            await self._mount_message(AppMessage(
+                "正在对本次对话进行语义分析，识别高价值知识节点，"
+                "提取分析偏好、业务规则与可复用方法论，"
+                "同步写入长期记忆层…"
+            ))
+
+            if self._agent and self._ui_adapter and self._session_state:
+                self._agent_running = True
+                if self._chat_input:
+                    self._chat_input.set_cursor_active(active=False)
+                self._agent_worker = self.run_worker(
+                    self._run_agent_task(final_prompt),
+                    exclusive=False,
+                )
+            return
         elif cmd == "/mcp":
             await self._show_mcp_viewer()
         elif cmd == "/model" or cmd.startswith("/model "):
