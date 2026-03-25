@@ -695,46 +695,27 @@ class ThreadSelectorScreen(ModalScreen[str | None]):
                 break
 
     def _build_title(self, thread_url: str | None = None) -> str | Text:
-        """Build the title, optionally with a clickable thread ID link.
-
-        Args:
-            thread_url: LangSmith thread URL. When provided, the thread ID is
-                rendered as a clickable hyperlink.
-
-        Returns:
-            Plain string or Rich `Text` with an embedded hyperlink.
-        """
         if not self._current_thread:
-            return "Select Thread"
+            return "历史会话"
         if thread_url:
             return Text.assemble(
-                "Select Thread (current: ",
+                "历史会话（当前：",
                 (self._current_thread, Style(color="cyan", link=thread_url)),
-                ")",
+                "）",
             )
-        return f"Select Thread (current: {self._current_thread})"
+        return f"历史会话（当前：{self._current_thread}）"
 
     def _build_help_text(self) -> str:
-        """Build the footer help text for the selector.
-
-        Returns:
-            Footer guidance for the active selector bindings.
-        """
         glyphs = get_glyphs()
         lines = (
-            f"{glyphs.arrow_up}/{glyphs.arrow_down} navigate"
-            f" {glyphs.bullet} Enter select"
-            f" {glyphs.bullet} Tab/Shift+Tab focus options"
-            f" {glyphs.bullet} Space toggle option"
-            f" {glyphs.bullet} Ctrl+D delete"
-            f" {glyphs.bullet} Esc cancel"
+            f"{glyphs.arrow_up}/{glyphs.arrow_down} 上下导航"
+            f" {glyphs.bullet} Enter 进入"
+            f" {glyphs.bullet} Ctrl+D 删除"
+            f" {glyphs.bullet} Esc 取消"
         )
         limit = self._effective_thread_limit()
         if len(self._threads) >= limit:
-            lines += (
-                f"\nShowing last {limit} threads. "
-                "Set DA_CLI_RECENT_THREADS to override."
-            )
+            lines += f"\n显示最近 {limit} 条会话"
         return lines
 
     def _effective_thread_limit(self) -> int:
@@ -757,21 +738,9 @@ class ThreadSelectorScreen(ModalScreen[str | None]):
         return self._filter_input
 
     def _filter_focus_order(self) -> list[Input | Checkbox]:
-        """Return the cached tab order for filter controls in the side panel."""
+        """Return the tab order for filter controls (search input only)."""
         if self._filter_controls is None:
-            filter_input = self._get_filter_input()
-            sort_switch = self.query_one(f"#{_SORT_SWITCH_ID}", Checkbox)
-            relative_switch = self.query_one(f"#{_RELATIVE_TIME_SWITCH_ID}", Checkbox)
-            column_switches = [
-                self.query_one(f"#{self._switch_id(key)}", Checkbox)
-                for key in _COLUMN_ORDER
-            ]
-            self._filter_controls = [
-                filter_input,
-                sort_switch,
-                relative_switch,
-                *column_switches,
-            ]
+            self._filter_controls = [self._get_filter_input()]
         return self._filter_controls
 
     def compose(self) -> ComposeResult:
@@ -786,7 +755,7 @@ class ThreadSelectorScreen(ModalScreen[str | None]):
             )
 
             yield Input(
-                placeholder="Type to search threads...",
+                placeholder="搜索会话...",
                 select_on_focus=False,
                 id="thread-filter",
             )
@@ -816,48 +785,15 @@ class ThreadSelectorScreen(ModalScreen[str | None]):
                                 yield from self._option_widgets
                             else:
                                 yield Static(
-                                    "[dim]No threads found[/dim]",
+                                    "[dim]未找到匹配的会话[/dim]",
                                     classes="thread-empty",
                                 )
                         else:
                             yield Static(
-                                "[dim]Loading threads...[/dim]",
+                                "[dim]加载中...[/dim]",
                                 classes="thread-empty",
                                 id="thread-loading",
                             )
-
-                with Vertical(classes="thread-controls"):
-                    yield Static("Options", classes="thread-controls-title")
-                    yield Static(
-                        (
-                            "Tab through sort and column toggles. "
-                            "Column visibility persists between sessions."
-                        ),
-                        classes="thread-controls-help",
-                        markup=False,
-                    )
-                    yield Checkbox(
-                        self._format_sort_toggle_label(),
-                        self._sort_by_updated,
-                        id=_SORT_SWITCH_ID,
-                        classes="thread-column-toggle",
-                        compact=True,
-                    )
-                    yield Checkbox(
-                        "Relative Timestamps",
-                        self._relative_time,
-                        id=_RELATIVE_TIME_SWITCH_ID,
-                        classes="thread-column-toggle",
-                        compact=True,
-                    )
-                    for key in _COLUMN_ORDER:
-                        yield Checkbox(
-                            _COLUMN_TOGGLE_LABELS[key],
-                            self._columns.get(key, False),
-                            id=self._switch_id(key),
-                            classes="thread-column-toggle",
-                            compact=True,
-                        )
 
             yield Static(
                 self._build_help_text(),
@@ -1461,7 +1397,7 @@ class ThreadSelectorScreen(ModalScreen[str | None]):
                     self._option_widgets = []
                     await scroll.mount(
                         Static(
-                            "[dim]No threads found[/dim]",
+                            "[dim]未找到匹配的会话[/dim]",
                             classes="thread-empty",
                         )
                     )
