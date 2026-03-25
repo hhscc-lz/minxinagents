@@ -118,7 +118,7 @@ class ServerConfig:
     interactive: bool = True
     enable_shell: bool = True
     enable_ask_user: bool = False
-    enable_memory: bool = False
+    enable_memory: bool = True
     enable_skills: bool = True
     sandbox_type: str | None = None
     sandbox_id: str | None = None
