@@ -41,6 +41,76 @@ body {
   overflow: hidden;
 }
 
+/* User pane */
+.user-pane {
+  width: 200px;
+  flex-shrink: 0;
+  background: #fff;
+  border-right: 1px solid #dde3ec;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.user-pane-header {
+  padding: 12px 14px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #eee;
+  flex-shrink: 0;
+}
+.user-list {
+  flex: 1;
+  overflow-y: auto;
+}
+.user-row {
+  padding: 9px 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-left: 3px solid transparent;
+  transition: background 0.1s;
+}
+.user-row:hover { background: #f5f8ff; }
+.user-row.active {
+  background: #eaf2ff;
+  border-left-color: #1a3a6b;
+}
+.user-row.all-users {
+  font-weight: 600;
+  color: #1a3a6b;
+  border-bottom: 1px solid #eee;
+}
+.user-name {
+  font-size: 13px;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 130px;
+}
+.user-count {
+  font-size: 11px;
+  background: #e8eef8;
+  color: #1a3a6b;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.user-row.active .user-count {
+  background: #1a3a6b;
+  color: #fff;
+}
+.user-last {
+  font-size: 10px;
+  color: #999;
+  margin-top: 1px;
+}
+
 /* Thread list */
 .list-pane {
   flex: 1;
@@ -50,9 +120,22 @@ body {
 }
 .list-pane.shrink { flex: 0 0 420px; }
 
+.list-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  min-height: 24px;
+}
+.filter-label {
+  font-size: 12px;
+  color: #666;
+}
+.filter-label strong { color: #1a3a6b; }
+
 .list-header {
   display: grid;
-  grid-template-columns: 150px 100px 60px 1fr;
+  grid-template-columns: 130px 90px 55px 1fr;
   gap: 8px;
   padding: 8px 12px;
   font-size: 12px;
@@ -66,7 +149,7 @@ body {
 
 .thread-row {
   display: grid;
-  grid-template-columns: 150px 100px 60px 1fr;
+  grid-template-columns: 130px 90px 55px 1fr;
   gap: 8px;
   padding: 10px 12px;
   background: #fff;
@@ -103,7 +186,7 @@ body {
   display: flex;
   flex-direction: column;
 }
-.detail-pane.open { width: 65%; min-width: 600px; max-width: 900px; }
+.detail-pane.open { width: 60%; min-width: 560px; max-width: 860px; }
 
 .detail-header {
   padding: 14px 16px;
@@ -180,11 +263,7 @@ details.tool-block summary {
   gap: 8px;
   border-bottom: 1px solid #e8d9a8;
 }
-details.tool-block summary::before {
-  content: "🔧";
-  font-size: 14px;
-  filter: grayscale(0.3);
-}
+details.tool-block summary::before { content: "🔧"; font-size: 14px; }
 details.tool-block[open] summary { background: #fff9e6; }
 details.tool-block summary .tool-name {
   font-family: 'Courier New', monospace;
@@ -235,6 +314,10 @@ details.tool-block pre {
   <h1>民心智能体 · 管理后台</h1>
   <div class="stats-bar">
     <div class="stat">
+      <span class="stat-value" id="stat-users">—</span>
+      <span class="stat-label">用户数</span>
+    </div>
+    <div class="stat">
       <span class="stat-value" id="stat-total">—</span>
       <span class="stat-label">总会话</span>
     </div>
@@ -246,7 +329,20 @@ details.tool-block pre {
 </div>
 
 <div class="main">
+
+  <!-- 用户排行面板 -->
+  <div class="user-pane">
+    <div class="user-pane-header">用户排行</div>
+    <div class="user-list" id="userList">
+      <div class="loading-msg" style="padding:20px 0">加载中…</div>
+    </div>
+  </div>
+
+  <!-- 会话列表 -->
   <div class="list-pane" id="listPane">
+    <div class="list-filter-bar">
+      <span class="filter-label" id="filterLabel">全部会话</span>
+    </div>
     <div class="list-header">
       <span>创建时间</span>
       <span>最后活跃</span>
@@ -257,6 +353,7 @@ details.tool-block pre {
     <div class="pagination" id="pagination"></div>
   </div>
 
+  <!-- 对话详情 -->
   <div class="detail-pane" id="detailPane">
     <div class="detail-header">
       <h3 id="detailTitle">对话详情</h3>
@@ -266,6 +363,7 @@ details.tool-block pre {
       <div class="loading-msg">选择一条会话查看详情</div>
     </div>
   </div>
+
 </div>
 
 <script>
@@ -273,15 +371,74 @@ let currentOffset = 0;
 const PAGE_SIZE = 50;
 let totalThreads = 0;
 let activeRow = null;
+let activeUserRow = null;
+let selectedAgentName = null;
 
+// ── 用户列表 ──────────────────────────────────────────────
+async function loadUsers() {
+  const res = await fetch('/admin/api/users');
+  const data = await res.json();
+
+  document.getElementById('stat-users').textContent = data.total_users;
+
+  const el = document.getElementById('userList');
+  if (!data.users.length) {
+    el.innerHTML = '<div class="loading-msg" style="padding:16px 0">暂无用户</div>';
+    return;
+  }
+
+  const allRow = `
+    <div class="user-row all-users active" id="userRow-all" onclick="selectUser(null, this)">
+      <span class="user-name">全部</span>
+      <span class="user-count" id="userCount-all">—</span>
+    </div>`;
+
+  const rows = data.users.map((u, i) => `
+    <div class="user-row" id="userRow-${i}" onclick="selectUser('${escHtml(u.agent_name)}', this)">
+      <div style="overflow:hidden">
+        <div class="user-name" title="${escHtml(u.agent_name)}">${escHtml(u.agent_name)}</div>
+        <div class="user-last">${u.last_active_relative || ''}</div>
+      </div>
+      <span class="user-count">${u.thread_count}</span>
+    </div>`).join('');
+
+  el.innerHTML = allRow + rows;
+  activeUserRow = document.getElementById('userRow-all');
+}
+
+function selectUser(agentName, rowEl) {
+  if (activeUserRow) activeUserRow.classList.remove('active');
+  rowEl.classList.add('active');
+  activeUserRow = rowEl;
+  selectedAgentName = agentName;
+
+  const label = document.getElementById('filterLabel');
+  if (agentName) {
+    label.innerHTML = `用户 <strong>${escHtml(agentName)}</strong> 的会话`;
+  } else {
+    label.textContent = '全部会话';
+  }
+
+  closePanel();
+  loadThreads(0);
+}
+
+// ── 会话列表 ──────────────────────────────────────────────
 async function loadThreads(offset = 0) {
   currentOffset = offset;
-  const res = await fetch(`/admin/api/threads?limit=${PAGE_SIZE}&offset=${offset}`);
+  let url = `/admin/api/threads?limit=${PAGE_SIZE}&offset=${offset}`;
+  if (selectedAgentName) url += `&agent_name=${encodeURIComponent(selectedAgentName)}`;
+
+  const res = await fetch(url);
   const data = await res.json();
 
   document.getElementById('stat-total').textContent = data.total;
   document.getElementById('stat-today').textContent = data.today;
   totalThreads = data.total;
+
+  // 更新"全部"用户行的总数
+  const allCount = document.getElementById('userCount-all');
+  if (allCount && !selectedAgentName) allCount.textContent = data.total;
 
   renderList(data.threads);
   renderPagination();
@@ -297,7 +454,7 @@ function renderList(threads) {
     const created = formatTime(t.created_at);
     const prompt = escHtml(t.initial_prompt || '（无内容）');
     return `
-      <div class="thread-row" data-id="${t.thread_id}" onclick="openThread(this, '${t.thread_id}', ${t.message_count})">
+      <div class="thread-row" onclick="openThread(this, '${t.thread_id}', ${t.message_count})">
         <div class="cell cell-time">
           ${created}
           <small>${t.created_at_relative || ''}</small>
@@ -322,6 +479,7 @@ function renderPagination() {
     <button onclick="loadThreads(${currentOffset + PAGE_SIZE})" ${hasNext ? '' : 'disabled'}>下一页</button>`;
 }
 
+// ── 对话详情 ──────────────────────────────────────────────
 async function openThread(rowEl, threadId, msgCount) {
   if (activeRow) activeRow.classList.remove('active');
   rowEl.classList.add('active');
@@ -357,7 +515,6 @@ function renderMessage(msg) {
   if (msg.type === 'human') {
     return `<div class="bubble user">${escHtml(msg.content)}</div>`;
   }
-
   if (msg.type === 'ai') {
     let html = '';
     if (msg.content && msg.content.trim()) {
@@ -375,9 +532,7 @@ function renderMessage(msg) {
     }
     return html || '';
   }
-
   if (msg.type === 'tool') {
-    const outputPreview = (msg.content || '').slice(0, 80);
     const hasMore = (msg.content || '').length > 80;
     return `
       <details class="tool-block">
@@ -388,7 +543,6 @@ function renderMessage(msg) {
         <pre>${escHtml(msg.content || '(无输出)')}</pre>
       </details>`;
   }
-
   return '';
 }
 
@@ -403,8 +557,7 @@ function renderMarkdown(text) {
 function formatTime(iso) {
   if (!iso) return '—';
   try {
-    const d = new Date(iso);
-    return d.toLocaleString('zh-CN', {
+    return new Date(iso).toLocaleString('zh-CN', {
       month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit'
     });
@@ -420,6 +573,8 @@ function escHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
+// 初始化
+loadUsers();
 loadThreads(0);
 </script>
 </body>

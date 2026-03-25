@@ -28,14 +28,24 @@ async def index():
 
 
 @app.get("/api/stats")
-async def stats():
-    return await db.count_stats()
+async def stats(agent_name: str | None = None):
+    return await db.count_stats(agent_name=agent_name)
+
+
+@app.get("/api/users")
+async def users(limit: int = 200):
+    """列出所有用户及活跃统计，按会话数降序（排行榜）。"""
+    items = await db.list_users(limit=limit)
+    for u in items:
+        u["last_active_relative"] = db.relative_time(u.get("last_active"))
+        u["first_active_relative"] = db.relative_time(u.get("first_active"))
+    return {"total_users": len(items), "users": items}
 
 
 @app.get("/api/threads")
-async def threads(limit: int = 50, offset: int = 0):
-    items = await db.list_threads(limit=limit, offset=offset)
-    stats = await db.count_stats()
+async def threads(limit: int = 50, offset: int = 0, agent_name: str | None = None):
+    items = await db.list_threads(limit=limit, offset=offset, agent_name=agent_name)
+    stats = await db.count_stats(agent_name=agent_name)
     for t in items:
         t["updated_at_relative"] = db.relative_time(t.get("updated_at"))
         t["created_at_relative"] = db.relative_time(t.get("created_at"))

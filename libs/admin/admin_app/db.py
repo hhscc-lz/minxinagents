@@ -65,25 +65,68 @@ def _get_serde():
 # Stats
 # ---------------------------------------------------------------------------
 
-async def count_stats() -> dict[str, int]:
-    """Return total thread count and today's new thread count."""
+async def list_users(limit: int = 200) -> list[dict[str, Any]]:
+    """列出所有用户（agent_name），按会话数降序，附带活跃统计。"""
+    async with _connect() as conn:
+        if not await _table_exists(conn, "checkpoints"):
+            return []
+        async with conn.execute(
+            """
+            SELECT
+                json_extract(metadata, '$.agent_name') AS agent_name,
+                COUNT(DISTINCT thread_id)               AS thread_count,
+                MAX(json_extract(metadata, '$.updated_at')) AS last_active,
+                MIN(json_extract(metadata, '$.updated_at')) AS first_active
+            FROM checkpoints
+            WHERE json_extract(metadata, '$.agent_name') IS NOT NULL
+              AND json_extract(metadata, '$.agent_name') != 'shared-session'
+            GROUP BY agent_name
+            ORDER BY thread_count DESC
+            LIMIT ?
+            """,
+            (limit,),
+        ) as cursor:
+            rows = await cursor.fetchall()
+    return [
+        {
+            "agent_name": r[0],
+            "thread_count": r[1],
+            "last_active": r[2],
+            "first_active": r[3],
+        }
+        for r in rows
+    ]
+
+
+async def count_stats(agent_name: str | None = None) -> dict[str, int]:
+    """Return total thread count and today's new thread count.
+
+    If agent_name is provided, scoped to that user only.
+    """
     async with _connect() as conn:
         if not await _table_exists(conn, "checkpoints"):
             return {"total_threads": 0, "today_threads": 0}
 
+        where = "WHERE json_extract(metadata, '$.agent_name') = ?" if agent_name else ""
+        params_total = (agent_name,) if agent_name else ()
+
         async with conn.execute(
-            "SELECT COUNT(DISTINCT thread_id) FROM checkpoints"
+            f"SELECT COUNT(DISTINCT thread_id) FROM checkpoints {where}",
+            params_total,
         ) as cursor:
             row = await cursor.fetchone()
             total = row[0] if row else 0
 
         today = datetime.now(tz=timezone.utc).date().isoformat()
+        today_where = "AND" if agent_name else "WHERE"
+        params_today = (agent_name, today) if agent_name else (today,)
         async with conn.execute(
-            """
+            f"""
             SELECT COUNT(DISTINCT thread_id) FROM checkpoints
-            WHERE json_extract(metadata, '$.updated_at') >= ?
+            {where}
+            {today_where} json_extract(metadata, '$.updated_at') >= ?
             """,
-            (today,),
+            params_today,
         ) as cursor:
             row = await cursor.fetchone()
             today_count = row[0] if row else 0
@@ -95,25 +138,29 @@ async def count_stats() -> dict[str, int]:
 # Thread list
 # ---------------------------------------------------------------------------
 
-async def list_threads(limit: int = 50, offset: int = 0) -> list[dict[str, Any]]:
+async def list_threads(limit: int = 50, offset: int = 0, agent_name: str | None = None) -> list[dict[str, Any]]:
     """List threads ordered by last activity, with message_count and initial_prompt."""
     async with _connect() as conn:
         if not await _table_exists(conn, "checkpoints"):
             return []
 
+        where = "WHERE json_extract(metadata, '$.agent_name') = ?" if agent_name else ""
+        params = (agent_name, limit, offset) if agent_name else (limit, offset)
+
         async with conn.execute(
-            """
+            f"""
             SELECT thread_id,
                    json_extract(metadata, '$.agent_name') as agent_name,
                    MAX(json_extract(metadata, '$.updated_at')) as updated_at,
                    MIN(json_extract(metadata, '$.updated_at')) as created_at,
                    MAX(checkpoint_id) as latest_checkpoint_id
             FROM checkpoints
+            {where}
             GROUP BY thread_id
             ORDER BY updated_at DESC
             LIMIT ? OFFSET ?
             """,
-            (limit, offset),
+            params,
         ) as cursor:
             rows = await cursor.fetchall()
 
