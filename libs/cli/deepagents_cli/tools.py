@@ -351,3 +351,101 @@ def export_data(query: dict) -> dict[str, Any]:
 
     except Exception as e:  # noqa: BLE001
         return {"success": False, "url": "", "error": str(e)}
+
+
+def upload_file(file_path: str) -> dict[str, Any]:
+    """Upload a workspace file to cloud storage and return a browser-accessible download URL.
+
+    ONLY call this tool when the user explicitly asks to download or save a file
+    (e.g. "帮我下载这份报告", "导出一下", "我要这个文件").
+    Do NOT call it automatically after writing or generating a file — the user
+    may want to continue refining the content before downloading.
+
+    Args:
+        file_path: Path to the file. Absolute or relative to the current
+                   working directory. Use the same path passed to write_file.
+
+    Returns:
+        Dictionary containing:
+        - success: Whether the upload succeeded
+        - url: Pre-signed download URL valid for 12 hours
+        - filename: The original filename
+
+    IMPORTANT: After using this tool:
+    1. Tell the user the file is ready and briefly describe its content.
+    2. Do NOT repeat the URL in your response — it is displayed automatically.
+    3. If upload failed, relay the error message to the user.
+    """
+    import mimetypes
+    import os
+    import uuid
+    from datetime import datetime, timedelta
+    from pathlib import Path
+
+    from minio import Minio
+
+    _MINIO_INTERNAL = "172.17.3.61:8882"
+    _MINIO_PUBLIC = "202.97.181.107:8882"
+    _BUCKET = "minxinagent"
+
+    try:
+        path = Path(file_path)
+        if not path.is_absolute():
+            path = (Path.cwd() / path).resolve()
+        else:
+            path = path.resolve()
+
+        # Security: only allow files inside the user's workspace
+        assistant_id = os.environ.get("MINXIN_USER", "shared-session")
+        workspace = (Path.home() / ".deepagents" / assistant_id / "workspace").resolve()
+        workspace_prefix = str(workspace) + os.sep
+        if not str(path).startswith(workspace_prefix):
+            return {
+                "success": False,
+                "url": "",
+                "error": f"只允许上传工作区内的文件。工作区路径：{workspace}",
+            }
+
+        if not path.exists():
+            return {"success": False, "url": "", "error": f"文件不存在：{path}"}
+        if not path.is_file():
+            return {"success": False, "url": "", "error": f"路径不是文件：{path}"}
+
+        # Detect MIME type from extension; fall back to binary stream
+        content_type, _ = mimetypes.guess_type(str(path))
+        content_type = content_type or "application/octet-stream"
+
+        # Object key: uploads/{user}/{date}/{short-uuid}_{filename}
+        date_prefix = datetime.now().strftime("%Y%m%d")
+        object_name = (
+            f"uploads/{assistant_id}/{date_prefix}/"
+            f"{uuid.uuid4().hex[:12]}_{path.name}"
+        )
+
+        # Upload via internal address
+        client = Minio(
+            _MINIO_INTERNAL,
+            access_key=os.environ["MINIO_ROOT_USER"],
+            secret_key=os.environ["MINIO_ROOT_PASSWORD"],
+            secure=False,
+        )
+        client.fput_object(_BUCKET, object_name, str(path), content_type=content_type)
+
+        # Presigned URL must be signed against the public host
+        # (same pattern as export_data — replacing host after signing breaks the signature)
+        public_client = Minio(
+            _MINIO_PUBLIC,
+            access_key=os.environ["MINIO_ROOT_USER"],
+            secret_key=os.environ["MINIO_ROOT_PASSWORD"],
+            secure=False,
+        )
+        url = public_client.presigned_get_object(
+            _BUCKET,
+            object_name,
+            expires=timedelta(hours=12),
+        )
+
+        return {"success": True, "url": url, "filename": path.name}
+
+    except Exception as e:  # noqa: BLE001
+        return {"success": False, "url": "", "error": str(e)}

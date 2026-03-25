@@ -101,6 +101,7 @@ _TOOLS_WITH_HEADER_INFO: set[str] = {
     "write_todos",
     # Data export tools
     "export_data",
+    "upload_file",
 }
 
 
@@ -743,6 +744,7 @@ class ToolCallMessage(Vertical):
             "ls": self._format_ls_output,
             "read_file": self._format_file_output,
             "export_data": self._format_export_data_output,
+            "upload_file": self._format_upload_file_output,
             "write_file": self._format_file_output,
             "edit_file": self._format_file_output,
             "grep": self._format_search_output,
@@ -1164,6 +1166,29 @@ class ToolCallMessage(Vertical):
 
         return FormattedOutput(
             content=f"[green]✓ 导出成功[/green]  [dim]{escape_markup(url)}[/dim]"
+        )
+
+    def _format_upload_file_output(  # noqa: PLR6301
+        self, output: str, *, is_preview: bool = False
+    ) -> FormattedOutput:
+        """Format upload_file result — show filename and a clickable download link."""
+        try:
+            data = json.loads(output)
+        except (ValueError, json.JSONDecodeError):
+            return FormattedOutput(content=escape_markup(output))
+
+        if not data.get("success"):
+            error = escape_markup(str(data.get("error", "上传失败")))
+            return FormattedOutput(content=f"[red]{error}[/red]")
+
+        url = data.get("url", "")
+        filename = escape_markup(str(data.get("filename", "")))
+        if not url:
+            return FormattedOutput(content="[dim]上传成功（无下载链接）[/dim]")
+
+        label = f"[green]✓ {filename} 已上传[/green]" if filename else "[green]✓ 上传成功[/green]"
+        return FormattedOutput(
+            content=f"{label}  [dim]{escape_markup(url)}[/dim]"
         )
 
     def _update_output_display(self) -> None:
