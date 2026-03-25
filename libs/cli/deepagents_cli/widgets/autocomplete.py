@@ -96,6 +96,7 @@ class CompletionController(Protocol):
 
 SLASH_COMMANDS: list[tuple[str, str, str]] = [
     ("/介绍", "查看智能体介绍", "关于 about 智能体 能力 功能 做什么 用途"),
+    ("/技能", "查看当前可用的分析技能列表", "skills skill 技能 能力 日报 周报"),
     ("/历史会话", "切换或恢复历史分析会话", "threads 会话 历史 上次 继续 恢复"),
     ("/新会话", "清空当前对话，开始新会话", "clear 清空 重置 新建 开始"),
     ("/记住", "回顾对话，保存分析偏好和可复用的分析方法", "remember 记忆 保存 偏好 习惯 skill"),

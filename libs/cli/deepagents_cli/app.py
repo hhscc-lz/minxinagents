@@ -641,6 +641,8 @@ class DeepAgentsApp(App):
         self._model_switching = False
         # Message virtualization store
         self._message_store = MessageStore()
+        # Skill slash commands loaded at startup
+        self._skill_commands: list[tuple[str, str, str]] = []
         # Lazily imported here to avoid pulling image dependencies into
         # argument parsing paths.
         from deepagents_cli.input import MediaTracker
@@ -900,6 +902,37 @@ class DeepAgentsApp(App):
             for w in self._queued_widgets:
                 w.remove()
             self._queued_widgets.clear()
+
+    def _load_skill_commands(self) -> list[tuple[str, str, str]]:
+        return []
+
+    async def _handle_skills_command(self) -> None:
+        """处理 /技能 命令，展示当前可用的 skill 列表。"""
+        from deepagents_cli.config import Settings, get_glyphs
+        from deepagents_cli.skills.load import list_skills
+
+        try:
+            settings = Settings.from_environment()
+            user_skills_dir = settings.get_user_skills_dir(self._assistant_id)
+            skills = list_skills(
+                built_in_skills_dir=settings.get_built_in_skills_dir(),
+                project_skills_dir=user_skills_dir if user_skills_dir.exists() else None,
+            )
+            # 过滤掉 skill-creator
+            skills = [s for s in skills if s["name"] != "skill-creator"]
+        except Exception:
+            await self._mount_message(AppMessage("加载技能列表失败"))
+            return
+
+        if not skills:
+            await self._mount_message(AppMessage("暂无可用技能"))
+            return
+
+        bullet = get_glyphs().bullet
+        lines = ["**可用技能**\n"]
+        for s in skills:
+            lines.append(f"{bullet} **{s['name']}**\n  {s['description']}\n")
+        await self._mount_message(AppMessage("\n".join(lines)))
 
     async def _prewarm_threads_cache(self) -> None:  # noqa: PLR6301  # Worker hook kept as instance method
         """Prewarm thread selector cache without blocking app startup."""
@@ -1578,6 +1611,9 @@ class DeepAgentsApp(App):
             await self._handle_compact()
         elif cmd in {"/threads", "/历史会话"}:
             await self._show_thread_selector()
+        elif cmd == "/技能":
+            await self._mount_message(UserMessage(command))
+            await self._handle_skills_command()
         elif cmd == "/trace":
             await self._handle_trace_command(command)
         elif cmd == "/tokens":
