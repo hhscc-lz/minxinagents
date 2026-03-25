@@ -710,10 +710,12 @@ def create_cli_agent(
     # Add skills middleware
     if enable_skills:
         # Lowest to highest precedence:
-        # built-in -> project .deepagents
+        # built-in -> project .deepagents -> user ~/.deepagents/{assistant_id}
         sources = [str(settings.get_built_in_skills_dir())]
         if project_skills_dir:
             sources.append(str(project_skills_dir))
+        user_skills_dir = settings.get_user_skills_dir(assistant_id)
+        sources.append(str(user_skills_dir))
 
         agent_middleware.append(
             SkillsMiddleware(
