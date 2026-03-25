@@ -623,6 +623,7 @@ class ThreadSelectorScreen(ModalScreen[str | None]):
         *,
         thread_limit: int | None = None,
         initial_threads: list[ThreadInfo] | None = None,
+        agent_name: str | None = None,
     ) -> None:
         """Initialize the `ThreadSelectorScreen`.
 
@@ -630,10 +631,12 @@ class ThreadSelectorScreen(ModalScreen[str | None]):
             current_thread: The currently active thread ID (to highlight).
             thread_limit: Maximum number of rows to fetch when querying DB.
             initial_threads: Optional preloaded rows to render immediately.
+            agent_name: Filter threads by this agent/user identifier.
         """
         super().__init__()
         self._current_thread = current_thread
         self._thread_limit = thread_limit
+        self._agent_name = agent_name
         self._threads: list[ThreadInfo] = (
             [ThreadInfo(**thread) for thread in initial_threads]
             if initial_threads is not None
@@ -1267,6 +1270,7 @@ class ThreadSelectorScreen(ModalScreen[str | None]):
                 limit = get_thread_limit()
             sort_by = "updated" if self._sort_by_updated else "created"
             self._threads = await list_threads(
+                agent_name=self._agent_name,
                 limit=limit, include_message_count=False, sort_by=sort_by
             )
         except (OSError, sqlite3.Error) as exc:
