@@ -415,6 +415,17 @@ def upload_file(file_path: str) -> dict[str, Any]:
         content_type, _ = mimetypes.guess_type(str(path))
         content_type = content_type or "application/octet-stream"
 
+        # Text types must carry charset so browsers decode UTF-8 correctly.
+        # Without it, browsers default to system encoding (often GBK on Chinese systems).
+        if content_type.startswith("text/"):
+            content_type = f"{content_type}; charset=utf-8"
+
+        # For types browsers render inline (txt, md, csv, html…), force download
+        # so the user gets a file rather than a browser preview page.
+        _INLINE_TYPES = {"text/plain", "text/markdown", "text/csv", "text/html"}
+        base_type = content_type.split(";")[0].strip()
+        force_download = base_type in _INLINE_TYPES
+
         # Object key: uploads/{user}/{date}/{short-uuid}_{filename}
         date_prefix = datetime.now().strftime("%Y%m%d")
         object_name = (
@@ -439,10 +450,21 @@ def upload_file(file_path: str) -> dict[str, Any]:
             secret_key=os.environ["MINIO_ROOT_PASSWORD"],
             secure=False,
         )
+
+        extra_params = {}
+        if force_download:
+            # URL-encode the filename for non-ASCII characters (e.g. Chinese filenames)
+            from urllib.parse import quote
+            encoded_name = quote(path.name, safe="")
+            extra_params["response-content-disposition"] = (
+                f"attachment; filename*=UTF-8''{encoded_name}"
+            )
+
         url = public_client.presigned_get_object(
             _BUCKET,
             object_name,
             expires=timedelta(hours=12),
+            response_headers=extra_params if extra_params else None,
         )
 
         return {"success": True, "url": url, "filename": path.name}
