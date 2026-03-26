@@ -51,7 +51,7 @@ services:
       DATABASE_URI: postgres://postgres:postgres@langgraph-postgres:5432/postgres?sslmode=disable
 
   minxinagent-admin:
-    image: ${ADMIN_IMAGE_NAME:-minxinagent-admin:v1.0.3}
+    image: ${ADMIN_IMAGE_NAME:-minxinagent-admin:v1.0.4}
     restart: unless-stopped
     ports:
       - "127.0.0.1:${ADMIN_PORT:-8001}:8001"
