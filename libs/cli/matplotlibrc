@@ -1,0 +1,5 @@
+# Matplotlib configuration for 民心智能体 Docker environment
+# Chinese font support via WenQuanYi Zen Hei (installed via fonts-wqy-zenhei)
+
+font.sans-serif: WenQuanYi Zen Hei, SimHei, DejaVu Sans
+axes.unicode_minus: False

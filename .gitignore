@@ -223,3 +223,12 @@ libs/cli/TEXTUAL_PROGRESS.md
 */tmp/.DS_Store
 
 CLAUDE.md
+
+*.tar
+apps/
+
+sessions/
+
+*.crt
+*.toml
+.env.example

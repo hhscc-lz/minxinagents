@@ -13,6 +13,13 @@ RUN mkdir -p /root/.deepagents
 # COPY libs/cli/config-glm.toml /root/.deepagents/config.toml
 COPY libs/cli/config-gpt.toml /root/.deepagents/config.toml
 
+# -- Install Chinese fonts for matplotlib chart rendering --
+RUN apt-get update && apt-get install -y --no-install-recommends fonts-wqy-zenhei && rm -rf /var/lib/apt/lists/*
+
+# -- Configure matplotlib: default font + headless backend --
+RUN mkdir -p /root/.config/matplotlib
+COPY libs/cli/matplotlibrc /root/.config/matplotlib/matplotlibrc
+
 # -- Installing all local dependencies --
 RUN for dep in /deps/*; do             echo "Installing $dep";             if [ -d "$dep" ]; then                 echo "Installing $dep";                 (cd "$dep" && PYTHONDONTWRITEBYTECODE=1 uv pip install --system --no-cache-dir -c /api/constraints.txt -e .);             fi;         done
 # -- End of local dependencies install --

@@ -72,6 +72,8 @@ dependencies = [
     "textual-web>=0.4.2",
     "minio>=7.2.20",
     "elasticsearch==8.17.0",
+    "matplotlib>=3.10.8",
+    "python-docx>=1.2.0",
 ]
 
 [project.optional-dependencies]
