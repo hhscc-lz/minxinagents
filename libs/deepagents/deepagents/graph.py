@@ -28,7 +28,6 @@ from deepagents.middleware.subagents import (
     GENERAL_PURPOSE_SUBAGENT,
     CompiledSubAgent,
     SubAgent,
-    SubAgentMiddleware,
 )
 from deepagents.middleware.summarization import create_summarization_middleware
 
@@ -237,10 +236,13 @@ def create_deep_agent(  # noqa: C901, PLR0912  # Complex graph assembly logic wi
             }
             processed_subagents.append(processed_spec)
 
-    if any(spec["name"] == GENERAL_PURPOSE_SUBAGENT["name"] for spec in processed_subagents):
+    if subagents is not None and len(subagents) == 0:
+        # Empty list explicitly passed — disable all subagents including general-purpose
+        all_subagents: list[SubAgent | CompiledSubAgent] = []
+    elif any(spec["name"] == GENERAL_PURPOSE_SUBAGENT["name"] for spec in processed_subagents):
         # If an agent with general purpose name already exists in subagents, then don't add it
         # This is how you overwrite/configure general purpose subagent
-        all_subagents: list[SubAgent | CompiledSubAgent] = processed_subagents
+        all_subagents = processed_subagents
     else:
         # Otherwise - add it!
         all_subagents = [general_purpose_spec, *processed_subagents]
@@ -256,10 +258,6 @@ def create_deep_agent(  # noqa: C901, PLR0912  # Complex graph assembly logic wi
     deepagent_middleware.extend(
         [
             FilesystemMiddleware(backend=backend),
-            SubAgentMiddleware(
-                backend=backend,
-                subagents=all_subagents,
-            ),
             create_summarization_middleware(model, backend),
             AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
             PatchToolCallsMiddleware(),

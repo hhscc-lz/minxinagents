@@ -659,27 +659,27 @@ def create_cli_agent(
             else settings.get_project_skills_dir()
         )
 
-    # Load custom subagents from filesystem
+    # Load custom subagents from filesystem (DISABLED for minxin agent)
     custom_subagents: list[SubAgent | CompiledSubAgent] = []
-    user_agents_dir = settings.get_user_agents_dir(assistant_id)
-    project_agents_dir = (
-        project_context.project_agents_dir()
-        if project_context is not None
-        else settings.get_project_agents_dir()
-    )
-
-    for subagent_meta in list_subagents(
-        user_agents_dir=user_agents_dir,
-        project_agents_dir=project_agents_dir,
-    ):
-        subagent: SubAgent = {
-            "name": subagent_meta["name"],
-            "description": subagent_meta["description"],
-            "system_prompt": subagent_meta["system_prompt"],
-        }
-        if subagent_meta["model"]:
-            subagent["model"] = subagent_meta["model"]
-        custom_subagents.append(subagent)
+    # user_agents_dir = settings.get_user_agents_dir(assistant_id)
+    # project_agents_dir = (
+    #     project_context.project_agents_dir()
+    #     if project_context is not None
+    #     else settings.get_project_agents_dir()
+    # )
+    #
+    # for subagent_meta in list_subagents(
+    #     user_agents_dir=user_agents_dir,
+    #     project_agents_dir=project_agents_dir,
+    # ):
+    #     subagent: SubAgent = {
+    #         "name": subagent_meta["name"],
+    #         "description": subagent_meta["description"],
+    #         "system_prompt": subagent_meta["system_prompt"],
+    #     }
+    #     if subagent_meta["model"]:
+    #         subagent["model"] = subagent_meta["model"]
+    #     custom_subagents.append(subagent)
 
     # Build middleware stack based on enabled features
     agent_middleware = []
@@ -820,6 +820,6 @@ def create_cli_agent(
         middleware=agent_middleware,
         interrupt_on=interrupt_on,
         checkpointer=checkpointer,
-        subagents=custom_subagents or None,
+        subagents=[],
     ).with_config(config)
     return agent, composite_backend
