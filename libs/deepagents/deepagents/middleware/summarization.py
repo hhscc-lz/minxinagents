@@ -88,13 +88,13 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-SUMMARIZATION_SYSTEM_PROMPT = """## Compact conversation Tool `compact_conversation`
+SUMMARIZATION_SYSTEM_PROMPT = """## `compact_conversation` 对话压缩工具
 
-You have access to a `compact_conversation` tool. This tool refreshes your context window to reduce context bloat and costs.
+当上下文过长影响效率时，使用此工具压缩对话历史，释放上下文空间。
 
-You should use the tool when:
-- The user asks to move on to a completely new task for which previous context is likely irrelevant.
-- You have finished extracting or synthesizing a result and previous working context is no longer needed.
+适合使用的场景：
+- 用户明确要开始一个全新任务，之前的上下文不再相关
+- 已完成一项复杂分析，中间过程不再需要保留
 """
 
 

@@ -196,78 +196,43 @@ Examples:
 - Show matching lines: `grep(pattern="error", output_mode="content")`
 - Search for code with special chars: `grep(pattern="def __init__(self):")`"""
 
-EXECUTE_TOOL_DESCRIPTION = """Executes a shell command in an isolated sandbox environment.
+EXECUTE_TOOL_DESCRIPTION = """执行 shell 命令，主要用于运行 Python 脚本查询 Elasticsearch 数据。
 
-Usage:
-Executes a given command in the sandbox environment with proper handling and security measures.
-Before executing the command, please follow these steps:
-1. Directory Verification:
-   - If the command will create new directories or files, first use the ls tool to verify the parent directory exists and is the correct location
-   - For example, before running "mkdir foo/bar", first use ls to check that "foo" exists and is the intended parent directory
-2. Command Execution:
-   - Always quote file paths that contain spaces with double quotes (e.g., cd "path with spaces/file.txt")
-   - Examples of proper quoting:
-     - cd "/Users/name/My Documents" (correct)
-     - cd /Users/name/My Documents (incorrect - will fail)
-     - python "/path/with spaces/script.py" (correct)
-     - python /path/with spaces/script.py (incorrect - will fail)
-   - After ensuring proper quoting, execute the command
-   - Capture the output of the command
+**主要用途：查询 ES 获取真实数据**
+
+```python
+# 标准 ES 查询写法
+python3 -c "
+from elasticsearch import Elasticsearch
+import os, json
+es = Elasticsearch(os.environ['ES_HOST'], basic_auth=(os.environ['ES_USER'], os.environ['ES_PASS']), ca_certs=os.environ['ES_CA_CERT'], request_timeout=60)
+r = es.search(index='t_complaints', body={'size': 10, 'query': {'match_all': {}}})
+print(json.dumps(r['hits']['hits'], ensure_ascii=False, indent=2))
+"
+```
+
 Usage notes:
-  - Commands run in an isolated sandbox environment
-  - Returns combined stdout/stderr output with exit code
-  - If the output is very large, it may be truncated
-  - For long-running commands, use the optional timeout parameter to override the default timeout (e.g., execute(command="make build", timeout=300))
-  - A timeout of 0 may disable timeouts on backends that support no-timeout execution
-  - VERY IMPORTANT: You MUST avoid using search commands like find and grep. Instead use the grep, glob tools to search. You MUST avoid read tools like cat, head, tail, and use read_file to read files.
-  - When issuing multiple commands, use the ';' or '&&' operator to separate them. DO NOT use newlines (newlines are ok in quoted strings)
-    - Use '&&' when commands depend on each other (e.g., "mkdir dir && cd dir")
-    - Use ';' only when you need to run commands sequentially but don't care if earlier commands fail
-  - Try to maintain your current working directory throughout the session by using absolute paths and avoiding usage of cd
+  - 路径含空格时必须加双引号
+  - 输出很大时会被截断，可重定向到临时文件
+  - 多条命令用 ';' 或 '&&' 连接，不要换行分隔"""
 
-Examples:
-  Good examples:
-    - execute(command="pytest /foo/bar/tests")
-    - execute(command="python /path/to/script.py")
-    - execute(command="npm install && npm test")
-    - execute(command="make build", timeout=300)
+FILESYSTEM_SYSTEM_PROMPT = """## 文件工具 `read_file`、`write_file`、`edit_file`
 
-  Bad examples (avoid these):
-    - execute(command="cd /foo/bar && pytest tests")  # Use absolute path instead
-    - execute(command="cat file.txt")  # Use read_file tool instead
-    - execute(command="find . -name '*.py'")  # Use glob tool instead
-    - execute(command="grep -r 'pattern' .")  # Use grep tool instead
+使用这些工具操作文件系统，所有路径必须以 / 开头。
 
-Note: This tool is only available if the backend supports execution (SandboxBackendProtocol).
-If execution is not supported, the tool will return an error message."""
+- read_file：读取文件内容
+- write_file：写入文件
+- edit_file：编辑文件中的指定内容
 
-FILESYSTEM_SYSTEM_PROMPT = """## Following Conventions
+## 大型工具结果
 
-- Read files before editing — understand existing content before making changes
-- Mimic existing style, naming conventions, and patterns
-
-## Filesystem Tools `ls`, `read_file`, `write_file`, `edit_file`, `glob`, `grep`
-
-You have access to a filesystem which you can interact with using these tools.
-All file paths must start with a /. Follow the tool docs for the available tools, and use pagination (offset/limit) when reading large files.
-
-- ls: list files in a directory (requires absolute path)
-- read_file: read a file from the filesystem
-- write_file: write to a file in the filesystem
-- edit_file: edit a file in the filesystem
-- glob: find files matching a pattern (e.g., "**/*.py")
-- grep: search for text within files
-
-## Large Tool Results
-
-When a tool result is too large, it may be offloaded into the filesystem instead of being returned inline. In those cases, use `read_file` to inspect the saved result in chunks, or use `grep` within `/large_tool_results/` if you need to search across offloaded tool results and do not know the exact file path. Offloaded tool results are stored under `/large_tool_results/<tool_call_id>`."""
+工具返回结果过大时，会自动存储到文件系统中。使用 `read_file` 分段读取，文件路径为 `/large_tool_results/<tool_call_id>`。"""
 
 EXECUTION_SYSTEM_PROMPT = """## Execute Tool `execute`
 
-You have access to an `execute` tool for running shell commands in a sandboxed environment.
-Use this tool to run commands, scripts, tests, builds, and other shell operations.
+通过 execute 工具执行 shell 命令，主要用于运行 Python 脚本查询 Elasticsearch 获取真实数据。收到数据分析请求时，直接调用 execute 执行 Python 查询，不要先输出任何文字。
 
-- execute: run a shell command in the sandbox (returns output and exit code)"""
+- execute: 在沙箱中执行 shell 命令，返回输出结果和退出码"""
 
 
 def _supports_execution(backend: BackendProtocol) -> bool:
@@ -493,12 +458,9 @@ class FilesystemMiddleware(AgentMiddleware[FilesystemState, ContextT, ResponseT]
         self._max_execute_timeout = max_execute_timeout
 
         self.tools = [
-            self._create_ls_tool(),
             self._create_read_file_tool(),
             self._create_write_file_tool(),
             self._create_edit_file_tool(),
-            self._create_glob_tool(),
-            self._create_grep_tool(),
             self._create_execute_tool(),
         ]
 

@@ -555,44 +555,22 @@ async def _alist_skills(backend: BackendProtocol, source_path: str) -> list[Skil
 
 
 SKILLS_SYSTEM_PROMPT = """
+## 技能库
 
-## Skills System
-
-You have access to a skills library that provides specialized capabilities and domain knowledge.
+你可以使用以下技能来完成特定领域的任务。
 
 {skills_locations}
 
-**Available Skills:**
+**可用技能：**
 
 {skills_list}
 
-**How to Use Skills (Progressive Disclosure):**
+**使用方式：**
 
-Skills follow a **progressive disclosure** pattern - you see their name and description above, but only read full instructions when needed:
-
-1. **Recognize when a skill applies**: Check if the user's task matches a skill's description
-2. **Read the skill's full instructions**: Use the path shown in the skill list above
-3. **Follow the skill's instructions**: SKILL.md contains step-by-step workflows, best practices, and examples
-4. **Access supporting files**: Skills may include helper scripts, configs, or reference docs - use absolute paths
-
-**When to Use Skills:**
-- User's request matches a skill's domain (e.g., "research X" -> web-research skill)
-- You need specialized knowledge or structured workflows
-- A skill provides proven patterns for complex tasks
-
-**Executing Skill Scripts:**
-Skills may contain Python scripts or other executable files. Always use absolute paths from the skill list.
-
-**Example Workflow:**
-
-User: "Can you research the latest developments in quantum computing?"
-
-1. Check available skills -> See "web-research" skill with its path
-2. Read the skill using the path shown
-3. Follow the skill's research workflow (search -> organize -> synthesize)
-4. Use any helper scripts with absolute paths
-
-Remember: Skills make you more capable and consistent. When in doubt, check if a skill exists for the task!
+1. 判断用户请求是否匹配某个技能
+2. 读取技能的完整说明文件（SKILL.md）
+3. 按照说明执行任务
+4. 使用绝对路径调用技能中的脚本或支持文件
 """
 
 

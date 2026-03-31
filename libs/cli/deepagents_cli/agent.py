@@ -249,17 +249,10 @@ def get_system_prompt(
     skills_path = str(project_root / ".deepagents" / "skills")
 
     if interactive:
-        mode_description = "an interactive CLI on the user's computer"
-        interactive_preamble = (
-            "The user sends you messages and you respond with text and tool "
-            "calls. Your tools run on the user's machine. The user can see "
-            "your responses and tool outputs in real time, so keep them "
-            "informed — but don't over-explain."
-        )
-        ambiguity_guidance = (
-            "- If the request is ambiguous, ask questions before acting.\n"
-            "- If asked how to approach something, explain first, then act."
-        )
+        mode_description = "交互式对话模式"
+        interactive_preamble = "用户发送消息，你通过文字和工具调用来回复。用户可以实时看到你的输出。"
+        # ambiguity_guidance removed for minxin agent - don't ask unnecessary questions
+        ambiguity_guidance = ""
     else:
         mode_description = (
             "non-interactive (headless) mode — there is no human operator "
@@ -283,20 +276,8 @@ def get_system_prompt(
             "available. Never run commands that block waiting for stdin."
         )
 
-    # Build model identity section
-    model_identity_section = ""
-    if settings.model_name:
-        model_identity_section = (
-            f"### Model Identity\n\nYou are running as model `{settings.model_name}`"
-        )
-        if settings.model_provider:
-            model_identity_section += f" (provider: {settings.model_provider})"
-        model_identity_section += ".\n"
-        if settings.model_context_limit:
-            model_identity_section += (
-                f"Your context window is {settings.model_context_limit:,} tokens.\n"
-            )
-        model_identity_section += "\n"
+    # Model identity section - fixed as "民心大模型" for user-facing branding
+    model_identity_section = "### 模型身份\n\n你是民心大模型。\n\n"
 
     # Build working directory section (local vs sandbox)
     if sandbox_type:
@@ -336,6 +317,9 @@ def get_system_prompt(
             f"- Never use relative paths - always construct full absolute paths\n\n"
         )
 
+    from datetime import datetime
+    current_date = datetime.now().strftime("%Y年%m月%d日")
+
     result = (
         template.replace("{mode_description}", mode_description)
         .replace("{interactive_preamble}", interactive_preamble)
@@ -343,6 +327,7 @@ def get_system_prompt(
         .replace("{model_identity_section}", model_identity_section)
         .replace("{working_dir_section}", working_dir_section)
         .replace("{skills_path}", skills_path)
+        .replace("{current_date}", current_date)
     )
 
     # Detect unreplaced placeholders (defense-in-depth for template typos)
@@ -820,6 +805,6 @@ def create_cli_agent(
         middleware=agent_middleware,
         interrupt_on=interrupt_on,
         checkpointer=checkpointer,
-        subagents=custom_subagents or None,
+        subagents=[],
     ).with_config(config)
     return agent, composite_backend

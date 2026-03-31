@@ -246,8 +246,15 @@ def create_deep_agent(  # noqa: C901, PLR0912  # Complex graph assembly logic wi
         all_subagents = [general_purpose_spec, *processed_subagents]
 
     # Build main agent middleware stack
+    _WRITE_TODOS_ZH = """## `write_todos` 任务规划工具
+
+使用 write_todos 工具管理复杂任务的执行步骤，让用户了解进度。
+适合步骤较多的复杂任务；简单的几步操作直接完成即可，无需创建任务列表。
+
+每完成一步立即标记为 completed，不要批量标记。任务执行中发现新子任务，立即添加。"""
+
     deepagent_middleware: list[AgentMiddleware[Any, Any, Any]] = [
-        TodoListMiddleware(),
+        TodoListMiddleware(system_prompt=_WRITE_TODOS_ZH),
     ]
     if memory is not None:
         deepagent_middleware.append(MemoryMiddleware(backend=backend, sources=memory))
@@ -256,12 +263,9 @@ def create_deep_agent(  # noqa: C901, PLR0912  # Complex graph assembly logic wi
     deepagent_middleware.extend(
         [
             FilesystemMiddleware(backend=backend),
-            SubAgentMiddleware(
-                backend=backend,
-                subagents=all_subagents,
-            ),
             create_summarization_middleware(model, backend),
-            AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
+            # AnthropicPromptCachingMiddleware disabled - proxy may not support prompt caching
+            # AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
             PatchToolCallsMiddleware(),
         ]
     )
@@ -271,14 +275,13 @@ def create_deep_agent(  # noqa: C901, PLR0912  # Complex graph assembly logic wi
     if interrupt_on is not None:
         deepagent_middleware.append(HumanInTheLoopMiddleware(interrupt_on=interrupt_on))
 
-    # Combine system_prompt with BASE_AGENT_PROMPT
+    # Use system_prompt as-is when provided; only fall back to BASE_AGENT_PROMPT when none given
     if system_prompt is None:
         final_system_prompt: str | SystemMessage = BASE_AGENT_PROMPT
     elif isinstance(system_prompt, SystemMessage):
-        final_system_prompt = SystemMessage(content_blocks=[*system_prompt.content_blocks, {"type": "text", "text": f"\n\n{BASE_AGENT_PROMPT}"}])
+        final_system_prompt = system_prompt
     else:
-        # String: simple concatenation
-        final_system_prompt = system_prompt + "\n\n" + BASE_AGENT_PROMPT
+        final_system_prompt = system_prompt
 
     return create_agent(
         model,

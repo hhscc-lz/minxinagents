@@ -125,14 +125,11 @@ Do NOT use this tool for:
 ASK_USER_SYSTEM_PROMPT = """## `ask_user`
 
 You have access to the `ask_user` tool to ask the user questions when you need clarification or input.
-Use this tool sparingly - only when you genuinely need information from the user that you cannot determine from context.
 
-When using `ask_user`:
-- Be concise and specific with your questions
-- Use multiple choice when there are clear options to choose from
-- Use text input when you need free-form responses
-- Group related questions into a single ask_user call rather than making multiple calls
-- Never ask questions you can answer yourself from the available context"""  # noqa: E501
+**只在以下情况使用 ask_user**：
+- 用户的业务需求本身不明确，需要进一步确认（例如：分析范围、对比维度、关注的具体问题）
+
+数据来源、连接方式、字段定义已在系统提示中完整定义，直接查询即可。遇到分析请求，先执行 ES 查询获取数据，再根据数据内容决定是否需要向用户确认什么。"""  # noqa: E501
 
 
 def _validate_questions(questions: list[Question]) -> None:
