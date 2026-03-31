@@ -493,12 +493,12 @@ class FilesystemMiddleware(AgentMiddleware[FilesystemState, ContextT, ResponseT]
         self._max_execute_timeout = max_execute_timeout
 
         self.tools = [
-            self._create_ls_tool(),
-            self._create_read_file_tool(),
+            # self._create_ls_tool(),
+            # self._create_read_file_tool(),
             self._create_write_file_tool(),
-            self._create_edit_file_tool(),
-            self._create_glob_tool(),
-            self._create_grep_tool(),
+            # self._create_edit_file_tool(),
+            # self._create_glob_tool(),
+            # self._create_grep_tool(),
             self._create_execute_tool(),
         ]
 
