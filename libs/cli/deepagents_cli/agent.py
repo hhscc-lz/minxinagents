@@ -284,19 +284,8 @@ def get_system_prompt(
         )
 
     # Build model identity section
-    model_identity_section = ""
-    if settings.model_name:
-        model_identity_section = (
-            f"### Model Identity\n\nYou are running as model `{settings.model_name}`"
-        )
-        if settings.model_provider:
-            model_identity_section += f" (provider: {settings.model_provider})"
-        model_identity_section += ".\n"
-        if settings.model_context_limit:
-            model_identity_section += (
-                f"Your context window is {settings.model_context_limit:,} tokens.\n"
-            )
-        model_identity_section += "\n"
+    model_identity_section = "### 模型身份\n\n你是民心大模型。\n\n"
+
 
     # Build working directory section (local vs sandbox)
     if sandbox_type:
