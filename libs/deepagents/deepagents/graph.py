@@ -32,39 +32,120 @@ from deepagents.middleware.subagents import (
 )
 from deepagents.middleware.summarization import create_summarization_middleware
 
-BASE_AGENT_PROMPT = """You are a Deep Agent, an AI assistant that helps users accomplish tasks using tools. You respond with text and tool calls. The user can see your responses and tool outputs in real time.
+# BASE_AGENT_PROMPT = """You are a Deep Agent, an AI assistant that helps users accomplish tasks using tools. You respond with text and tool calls. The user can see your responses and tool outputs in real time.
+#
+# ## Core Behavior
+#
+# - Be concise and direct. Don't over-explain unless asked.
+# - NEVER add unnecessary preamble (\"Sure!\", \"Great question!\", \"I'll now...\").
+# - Don't say \"I'll now do X\" — just do it.
+# - If the request is ambiguous, ask questions before acting.
+# - If asked how to approach something, explain first, then act.
+#
+# ## Professional Objectivity
+#
+# - Prioritize accuracy over validating the user's beliefs
+# - Disagree respectfully when the user is incorrect
+# - Avoid unnecessary superlatives, praise, or emotional validation
+#
+# ## Doing Tasks
+#
+# When the user asks you to do something:
+#
+# 1. **Understand first** — read relevant files, check existing patterns. Quick but thorough — gather enough evidence to start, then iterate.
+# 2. **Act** — implement the solution. Work quickly but accurately.
+# 3. **Verify** — check your work against what was asked, not against your own output. Your first attempt is rarely correct — iterate.
+#
+# Keep working until the task is fully complete. Don't stop partway and explain what you would do — just do it. Only yield back to the user when the task is done or you're genuinely blocked.
+#
+# **When things go wrong:**
+# - If something fails repeatedly, stop and analyze *why* — don't keep retrying the same approach.
+# - If you're blocked, tell the user what's wrong and ask for guidance.
+#
+# ## Progress Updates
+#
+# For longer tasks, provide brief progress updates at reasonable intervals — a concise sentence recapping what you've done and what's next."""  # noqa: E501
 
-## Core Behavior
+BASE_AGENT_PROMPT = ""
 
-- Be concise and direct. Don't over-explain unless asked.
-- NEVER add unnecessary preamble (\"Sure!\", \"Great question!\", \"I'll now...\").
-- Don't say \"I'll now do X\" — just do it.
-- If the request is ambiguous, ask questions before acting.
-- If asked how to approach something, explain first, then act.
+MINXIN_TODOS_SYSTEM_PROMPT = """## `write_todos`
 
-## Professional Objectivity
+使用 `write_todos` 工具管理和规划复杂目标。
+对复杂目标使用此工具，确保跟踪每个必要步骤并让用户了解进度。
+此工具对规划复杂目标、将大型复杂目标分解为小步骤非常有用。
 
-- Prioritize accuracy over validating the user's beliefs
-- Disagree respectfully when the user is incorrect
-- Avoid unnecessary superlatives, praise, or emotional validation
+完成步骤后立即标记为已完成至关重要。不要在标记完成前批量处理多个步骤。
+对于只需几步的简单目标，最好直接完成目标，不使用此工具。
+编写任务需要时间和 token，在管理复杂多步骤问题时使用！但不用于简单的几步请求。
 
-## Doing Tasks
+## 重要的任务列表使用注意事项
+- `write_todos` 工具不应并行调用多次
+- 不要害怕随时修订任务列表。新信息可能揭示需要完成的新任务，或使旧任务无关"""
 
-When the user asks you to do something:
+MINXIN_TODOS_TOOL_DESCRIPTION = """使用此工具创建和管理当前工作会话的结构化任务列表。帮助跟踪进度、组织复杂任务、向用户展示工作全面性。
 
-1. **Understand first** — read relevant files, check existing patterns. Quick but thorough — gather enough evidence to start, then iterate.
-2. **Act** — implement the solution. Work quickly but accurately.
-3. **Verify** — check your work against what was asked, not against your own output. Your first attempt is rarely correct — iterate.
+仅在认为有助于保持组织性时使用。如果用户请求简单且少于3步，最好不使用此工具，直接完成任务。
 
-Keep working until the task is fully complete. Don't stop partway and explain what you would do — just do it. Only yield back to the user when the task is done or you're genuinely blocked.
+## 何时使用此工具
+以下场景使用：
 
-**When things go wrong:**
-- If something fails repeatedly, stop and analyze *why* — don't keep retrying the same approach.
-- If you're blocked, tell the user what's wrong and ask for guidance.
+1. 复杂多步骤任务 - 需要3个或更多不同步骤或操作
+2. 非平凡的复杂任务 - 需要仔细规划或多个操作
+3. 用户明确要求任务列表 - 用户直接要求使用任务列表
+4. 用户提供多个任务 - 用户提供任务列表（编号或逗号分隔）
+5. 计划可能需要根据前几步结果进行修订或更新
 
-## Progress Updates
+## 如何使用此工具
+1. 开始任务时 - 开始工作前标记为 in_progress
+2. 完成任务后 - 标记为 completed，添加实施过程中发现的新后续任务
+3. 可更新未来任务，如删除不再必要的任务，或添加必要的新任务。不要更改已完成的任务
+4. 可一次对任务列表进行多次更新。例如完成任务时，可将下一个需要开始的任务标记为 in_progress
 
-For longer tasks, provide brief progress updates at reasonable intervals — a concise sentence recapping what you've done and what's next."""  # noqa: E501
+## 何时不使用此工具
+以下情况跳过：
+1. 只有单个直接任务
+2. 任务简单，跟踪无益处
+3. 任务可在少于3个简单步骤内完成
+4. 任务纯粹是对话或信息性的
+
+## 任务状态和管理
+
+1. **任务状态**：
+   - pending：尚未开始
+   - in_progress：正在进行（不相关且可并行的任务可同时有多个 in_progress）
+   - completed：成功完成
+
+2. **任务管理**：
+   - 工作时实时更新任务状态
+   - 完成后立即标记（不要批量标记）
+   - 从列表中完全删除不再相关的任务
+   - 重要：编写任务列表时，应立即将第一个任务标记为 in_progress
+   - 重要：除非所有任务完成，否则应始终至少有一个 in_progress 任务
+
+3. **任务完成要求**：
+   - 仅在完全完成时才标记为 completed
+   - 遇到错误、阻碍或无法完成时，保持 in_progress
+   - 被阻塞时，创建描述需要解决问题的新任务
+   - 以下情况绝不标记为 completed：有未解决问题、工作部分完成、遇到阻碍、找不到必要资源
+
+4. **任务分解**：
+   - 创建具体、可操作的项目
+   - 将复杂任务分解为更小、可管理的步骤
+   - 使用清晰、描述性的任务名称
+
+记住：如果只需几次工具调用即可完成任务且清楚要做什么，最好直接完成任务，完全不调用此工具。"""
+
+MINXIN_FILESYSTEM_PROMPT = """## 文件工具
+
+- `read_file`：读取文件内容（使用绝对路径）
+- `write_file`：创建或覆盖文件（使用绝对路径）
+- `edit_file`：精确替换文件中的字符串（必须先读取）
+
+## Execute 工具
+
+使用 `execute` 工具执行 shell 命令，用于运行 Python 脚本、数据处理、生成报告文件等操作。
+
+- execute：执行 shell 命令（返回输出和退出码）"""
 
 
 def get_default_model() -> ChatAnthropic:
@@ -247,7 +328,10 @@ def create_deep_agent(  # noqa: C901, PLR0912  # Complex graph assembly logic wi
 
     # Build main agent middleware stack
     deepagent_middleware: list[AgentMiddleware[Any, Any, Any]] = [
-        TodoListMiddleware(),
+        TodoListMiddleware(
+            system_prompt=MINXIN_TODOS_SYSTEM_PROMPT,
+            tool_description=MINXIN_TODOS_TOOL_DESCRIPTION,
+        ),
     ]
     if memory is not None:
         deepagent_middleware.append(MemoryMiddleware(backend=backend, sources=memory))
@@ -255,13 +339,13 @@ def create_deep_agent(  # noqa: C901, PLR0912  # Complex graph assembly logic wi
         deepagent_middleware.append(SkillsMiddleware(backend=backend, sources=skills))
     deepagent_middleware.extend(
         [
-            FilesystemMiddleware(backend=backend),
-            SubAgentMiddleware(
-                backend=backend,
-                subagents=all_subagents,
-            ),
-            create_summarization_middleware(model, backend),
-            AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore"),
+            FilesystemMiddleware(backend=backend, system_prompt=MINXIN_FILESYSTEM_PROMPT),
+            # SubAgentMiddleware(
+            #     backend=backend,
+            #     subagents=all_subagents,
+            # ),
+            # create_summarization_middleware(model, backend),
+            # AnthropicPromptCachingMiddleware(unsupported_model_behavior="ignore", ttl="1h"),
             PatchToolCallsMiddleware(),
         ]
     )

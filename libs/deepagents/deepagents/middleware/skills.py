@@ -556,43 +556,43 @@ async def _alist_skills(backend: BackendProtocol, source_path: str) -> list[Skil
 
 SKILLS_SYSTEM_PROMPT = """
 
-## Skills System
+## 技能系统
 
-You have access to a skills library that provides specialized capabilities and domain knowledge.
+你可以访问技能库，提供专业能力和领域知识。
 
 {skills_locations}
 
-**Available Skills:**
+**可用技能：**
 
 {skills_list}
 
-**How to Use Skills (Progressive Disclosure):**
+**如何使用技能（渐进式披露）：**
 
-Skills follow a **progressive disclosure** pattern - you see their name and description above, but only read full instructions when needed:
+技能遵循渐进式披露模式——你看到名称和描述，但仅在需要时才读取完整指令：
 
-1. **Recognize when a skill applies**: Check if the user's task matches a skill's description
-2. **Read the skill's full instructions**: Use the path shown in the skill list above
-3. **Follow the skill's instructions**: SKILL.md contains step-by-step workflows, best practices, and examples
-4. **Access supporting files**: Skills may include helper scripts, configs, or reference docs - use absolute paths
+1. **识别技能适用场景**：检查用户任务是否匹配技能描述
+2. **读取技能完整指令**：使用技能列表中显示的路径
+3. **遵循技能指令**：SKILL.md 包含分步工作流、最佳实践和示例
+4. **访问支持文件**：技能可能包含辅助脚本、配置或参考文档——使用绝对路径
 
-**When to Use Skills:**
-- User's request matches a skill's domain (e.g., "research X" -> web-research skill)
-- You need specialized knowledge or structured workflows
-- A skill provides proven patterns for complex tasks
+**何时使用技能：**
+- 用户请求匹配技能领域（如"生成周报" -> 周报技能）
+- 需要专业知识或结构化工作流
+- 技能提供复杂任务的成熟模式
 
-**Executing Skill Scripts:**
-Skills may contain Python scripts or other executable files. Always use absolute paths from the skill list.
+**执行技能脚本：**
+技能可能包含 Python 脚本或其他可执行文件。始终使用技能列表中的绝对路径。
 
-**Example Workflow:**
+**示例工作流：**
 
-User: "Can you research the latest developments in quantum computing?"
+用户："生成本周的数据分析报告"
 
-1. Check available skills -> See "web-research" skill with its path
-2. Read the skill using the path shown
-3. Follow the skill's research workflow (search -> organize -> synthesize)
-4. Use any helper scripts with absolute paths
+1. 检查可用技能 -> 看到"周报"技能及其路径
+2. 使用路径读取技能
+3. 遵循技能的报告生成工作流（查询数据 -> 分析 -> 撰写报告）
+4. 使用绝对路径执行辅助脚本
 
-Remember: Skills make you more capable and consistent. When in doubt, check if a skill exists for the task!
+记住：技能让你更有能力且更一致。有疑问时，检查是否存在适用的技能！
 """
 
 

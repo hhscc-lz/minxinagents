@@ -249,16 +249,14 @@ def get_system_prompt(
     skills_path = str(project_root / ".deepagents" / "skills")
 
     if interactive:
-        mode_description = "an interactive CLI on the user's computer"
+        mode_description = "用户计算机上的交互式 CLI"
         interactive_preamble = (
-            "The user sends you messages and you respond with text and tool "
-            "calls. Your tools run on the user's machine. The user can see "
-            "your responses and tool outputs in real time, so keep them "
-            "informed — but don't over-explain."
+            "用户向你发送消息，你用文本和工具调用回复。工具在用户机器上运行。"
+            "用户能实时看到你的回复和工具输出，保持信息透明——但不要过度解释。"
         )
         ambiguity_guidance = (
-            "- If the request is ambiguous, ask questions before acting.\n"
-            "- If asked how to approach something, explain first, then act."
+            "- 请求模糊时，先提问再行动。\n"
+            "- 被问如何处理时，先解释再行动。"
         )
     else:
         mode_description = (
@@ -314,15 +312,14 @@ def get_system_prompt(
                 resolved_cwd = Path()
         cwd = resolved_cwd
         working_dir_section = (
-            f"### Current Working Directory\n\n"
-            f"The filesystem backend is currently operating in: `{cwd}`\n\n"
-            f"### File System and Paths\n\n"
-            f"**IMPORTANT - Path Handling:**\n"
-            f"- All file paths must be absolute paths (e.g., `{cwd}/file.txt`)\n"
-            f"- Use the working directory to construct absolute paths\n"
-            f"- Example: To create a file in your working directory, "
-            f"use `{cwd}/research_project/file.md`\n"
-            f"- Never use relative paths - always construct full absolute paths\n\n"
+            f"### 当前工作目录\n\n"
+            f"文件系统后端当前运行在：`{cwd}`\n\n"
+            f"### 文件系统和路径\n\n"
+            f"**重要 - 路径处理：**\n"
+            f"- 所有文件路径必须使用绝对路径（例如：`{cwd}/file.txt`）\n"
+            f"- 使用工作目录构造绝对路径\n"
+            f"- 示例：在工作目录创建文件，使用 `{cwd}/report.md`\n"
+            f"- 绝不使用相对路径——始终构造完整绝对路径\n\n"
         )
 
     result = (
@@ -794,11 +791,11 @@ def create_cli_agent(
             routes={},
         )
 
-    from deepagents.middleware.summarization import create_summarization_tool_middleware
+    # from deepagents.middleware.summarization import create_summarization_tool_middleware
 
-    agent_middleware.append(
-        create_summarization_tool_middleware(model, composite_backend)
-    )
+    # agent_middleware.append(
+    #     create_summarization_tool_middleware(model, composite_backend)
+    # )
 
     # Create the agent
     agent = create_deep_agent(

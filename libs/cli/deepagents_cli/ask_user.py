@@ -101,38 +101,37 @@ class AskUserCancelled(TypedDict):
 AskUserWidgetResult = AskUserAnswered | AskUserCancelled
 
 
-ASK_USER_TOOL_DESCRIPTION = """Ask the user one or more questions when you need clarification or input before proceeding.
+ASK_USER_TOOL_DESCRIPTION = """在需要用户提供信息或澄清时，向用户提出一个或多个问题。
 
-Each question can be either:
-- "text": Free-form text response from the user
-- "multiple_choice": User selects from predefined options (an "Other" option is always available)
+每个问题可以是：
+- "text"：用户自由输入文本
+- "multiple_choice"：用户从预设选项中选择（始终自动追加"其他"选项）
 
-For multiple choice questions, provide a list of choices. The user can pick one or type a custom answer via the "Other" option.
+多选题需提供选项列表，用户可选择一项或通过"其他"输入自定义答案。
 
-By default all questions are required. Set "required" to false for optional questions that the user can skip.
+默认所有问题为必答。将 "required" 设为 false 可允许用户跳过该问题。
 
-Use this tool when:
-- You need clarification on ambiguous requirements
-- You want the user to choose between multiple valid approaches
-- You need specific information only the user can provide
-- You want to confirm a plan before executing it
+适用场景：
+- 需要澄清模糊的需求
+- 需要用户在多个有效方案中做选择
+- 需要只有用户才能提供的信息
+- 执行前需要确认方案
 
-Do NOT use this tool for:
-- Simple yes/no confirmations (just proceed with your best judgment)
-- Questions you can answer yourself from context
-- Trivial decisions that don't meaningfully affect the outcome"""  # noqa: E501
+不适用场景：
+- 简单的是否确认（直接用最佳判断执行）
+- 自己能从上下文回答的问题
+- 不影响结果的无关紧要决定"""  # noqa: E501
 
 ASK_USER_SYSTEM_PROMPT = """## `ask_user`
 
-You have access to the `ask_user` tool to ask the user questions when you need clarification or input.
-Use this tool sparingly - only when you genuinely need information from the user that you cannot determine from context.
+当你需要用户提供信息或澄清时，可使用 `ask_user` 工具。
+仅在无法从上下文中自行判断时才使用，不要滥用。
 
-When using `ask_user`:
-- Be concise and specific with your questions
-- Use multiple choice when there are clear options to choose from
-- Use text input when you need free-form responses
-- Group related questions into a single ask_user call rather than making multiple calls
-- Never ask questions you can answer yourself from the available context"""  # noqa: E501
+使用时：
+- 问题要简洁具体
+- 有明确选项时用多选，需要自由回答时用文本
+- 将相关问题合并为一次调用，不要多次调用
+- 不要问自己能从上下文回答的问题"""  # noqa: E501
 
 
 def _validate_questions(questions: list[Question]) -> None:

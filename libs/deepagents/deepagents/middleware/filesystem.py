@@ -135,45 +135,30 @@ LIST_FILES_TOOL_DESCRIPTION = """Lists all files in a directory.
 This is useful for exploring the filesystem and finding the right file to read or edit.
 You should almost ALWAYS use this tool before using the read_file or edit_file tools."""
 
-READ_FILE_TOOL_DESCRIPTION = """Reads a file from the filesystem.
+READ_FILE_TOOL_DESCRIPTION = """从文件系统读取文件。
 
-Assume this tool is able to read all files. If the User provides a path to a file assume that path is valid. It is okay to read a file that does not exist; an error will be returned.
+假设此工具能读取所有文件。如果用户提供了文件路径，假设路径有效。文件不存在时会返回错误。
 
-Usage:
-- By default, it reads up to 100 lines starting from the beginning of the file
-- **IMPORTANT for large files and codebase exploration**: Use pagination with offset and limit parameters to avoid context overflow
-  - First scan: read_file(path, limit=100) to see file structure
-  - Read more sections: read_file(path, offset=100, limit=200) for next 200 lines
-  - Only omit limit (read full file) when necessary for editing
-- Specify offset and limit: read_file(path, offset=0, limit=100) reads first 100 lines
-- Results are returned using cat -n format, with line numbers starting at 1
-- Lines longer than 5,000 characters will be split into multiple lines with continuation markers (e.g., 5.1, 5.2, etc.). When you specify a limit, these continuation lines count towards the limit.
-- You have the capability to call multiple tools in a single response. It is always better to speculatively read multiple files as a batch that are potentially useful.
-- If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents.
-- Image files (`.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`) are returned as multimodal image content blocks (see https://docs.langchain.com/oss/python/langchain/messages#multimodal).
+使用说明：
+- 默认从文件开头读取最多100行
+- 大文件请使用分页参数避免上下文溢出：
+  - 先扫描：read_file(path, limit=100) 了解文件结构
+  - 再分段读：read_file(path, offset=100, limit=200) 读取后续内容
+  - 仅在需要编辑时才完整读取文件
+- 指定分页：read_file(path, offset=0, limit=100) 读取前100行
+- 结果以行号格式返回，行号从1开始
+- 可在一次响应中批量读取多个文件
+- 文件存在但内容为空时会收到系统提示
+- 编辑文件前必须先读取"""
 
-For image tasks:
-- Use `read_file(file_path=...)` for `.png/.jpg/.jpeg/.gif/.webp`
-- Do NOT use `offset`/`limit` for images (pagination is text-only)
-- If image details were compacted from history, call `read_file` again on the same path
+EDIT_FILE_TOOL_DESCRIPTION = """对文件进行精确字符串替换。
 
-- You should ALWAYS make sure a file has been read before editing it."""
-
-EDIT_FILE_TOOL_DESCRIPTION = """Performs exact string replacements in files.
-
-Usage:
-- You must read the file before editing. This tool will error if you attempt an edit without reading the file first.
-- When editing, preserve the exact indentation (tabs/spaces) from the read output. Never include line number prefixes in old_string or new_string.
-- ALWAYS prefer editing existing files over creating new ones.
-- Only use emojis if the user explicitly requests it."""
+使用说明：
+- 编辑前必须先读取文件，否则报错
+- 保留读取输出中的精确缩进（制表符/空格），不要包含行号前缀"""
 
 
-WRITE_FILE_TOOL_DESCRIPTION = """Writes to a new file in the filesystem.
-
-Usage:
-- The write_file tool will create the a new file.
-- Prefer to edit existing files (with the edit_file tool) over creating new ones when possible.
-"""
+WRITE_FILE_TOOL_DESCRIPTION = """创建或覆盖文件系统中的文件（使用绝对路径）。"""
 
 GLOB_TOOL_DESCRIPTION = """Find files matching a glob pattern.
 
@@ -196,50 +181,14 @@ Examples:
 - Show matching lines: `grep(pattern="error", output_mode="content")`
 - Search for code with special chars: `grep(pattern="def __init__(self):")`"""
 
-EXECUTE_TOOL_DESCRIPTION = """Executes a shell command in an isolated sandbox environment.
+EXECUTE_TOOL_DESCRIPTION = """执行 shell 命令，用于运行 Python 脚本、数据处理、生成报告文件等操作。
 
-Usage:
-Executes a given command in the sandbox environment with proper handling and security measures.
-Before executing the command, please follow these steps:
-1. Directory Verification:
-   - If the command will create new directories or files, first use the ls tool to verify the parent directory exists and is the correct location
-   - For example, before running "mkdir foo/bar", first use ls to check that "foo" exists and is the intended parent directory
-2. Command Execution:
-   - Always quote file paths that contain spaces with double quotes (e.g., cd "path with spaces/file.txt")
-   - Examples of proper quoting:
-     - cd "/Users/name/My Documents" (correct)
-     - cd /Users/name/My Documents (incorrect - will fail)
-     - python "/path/with spaces/script.py" (correct)
-     - python /path/with spaces/script.py (incorrect - will fail)
-   - After ensuring proper quoting, execute the command
-   - Capture the output of the command
-Usage notes:
-  - Commands run in an isolated sandbox environment
-  - Returns combined stdout/stderr output with exit code
-  - If the output is very large, it may be truncated
-  - For long-running commands, use the optional timeout parameter to override the default timeout (e.g., execute(command="make build", timeout=300))
-  - A timeout of 0 may disable timeouts on backends that support no-timeout execution
-  - VERY IMPORTANT: You MUST avoid using search commands like find and grep. Instead use the grep, glob tools to search. You MUST avoid read tools like cat, head, tail, and use read_file to read files.
-  - When issuing multiple commands, use the ';' or '&&' operator to separate them. DO NOT use newlines (newlines are ok in quoted strings)
-    - Use '&&' when commands depend on each other (e.g., "mkdir dir && cd dir")
-    - Use ';' only when you need to run commands sequentially but don't care if earlier commands fail
-  - Try to maintain your current working directory throughout the session by using absolute paths and avoiding usage of cd
-
-Examples:
-  Good examples:
-    - execute(command="pytest /foo/bar/tests")
-    - execute(command="python /path/to/script.py")
-    - execute(command="npm install && npm test")
-    - execute(command="make build", timeout=300)
-
-  Bad examples (avoid these):
-    - execute(command="cd /foo/bar && pytest tests")  # Use absolute path instead
-    - execute(command="cat file.txt")  # Use read_file tool instead
-    - execute(command="find . -name '*.py'")  # Use glob tool instead
-    - execute(command="grep -r 'pattern' .")  # Use grep tool instead
-
-Note: This tool is only available if the backend supports execution (SandboxBackendProtocol).
-If execution is not supported, the tool will return an error message."""
+使用说明：
+- 返回 stdout/stderr 合并输出和退出码
+- 路径含空格时必须加双引号
+- 多命令用 && 或 ; 分隔，不用换行
+- 使用绝对路径，避免使用 cd
+- 长命令可用 timeout 参数设置超时（秒）"""
 
 FILESYSTEM_SYSTEM_PROMPT = """## Following Conventions
 
@@ -494,9 +443,9 @@ class FilesystemMiddleware(AgentMiddleware[FilesystemState, ContextT, ResponseT]
 
         self.tools = [
             # self._create_ls_tool(),
-            # self._create_read_file_tool(),
+            self._create_read_file_tool(),
             self._create_write_file_tool(),
-            # self._create_edit_file_tool(),
+            self._create_edit_file_tool(),
             # self._create_glob_tool(),
             # self._create_grep_tool(),
             self._create_execute_tool(),
