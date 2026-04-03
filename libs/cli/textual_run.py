@@ -59,13 +59,27 @@ class AuthServer(Server):
         font_size = _to_int(request.query.get("fontsize", "16"), 16)
         token = request.query.get("token", "")
 
-        # 验证 token，解析手机号
-        phone = "shared-session"
+        # 验证 token，解析手机号，失败直接拒绝
         try:
             phone = verify_token(token)
             logger.info("用户 %s 认证成功", phone)
         except TokenError as e:
             logger.warning("token 验证失败：%s", e)
+            return web.Response(
+                status=401,
+                content_type="text/html",
+                text=f"<!DOCTYPE html><html><head><meta charset='UTF-8'>"
+                     f"<title>访问受限</title>"
+                     f"<style>body{{font-family:sans-serif;display:flex;align-items:center;"
+                     f"justify-content:center;height:100vh;margin:0;background:#f0f2f5;}}"
+                     f".box{{text-align:center;color:#555;}}"
+                     f"h2{{color:#1a3a6b;}}</style></head>"
+                     f"<body><div class='box'>"
+                     f"<h2>访问受限</h2>"
+                     f"<p>请从系统入口进入民心智能体</p>"
+                     f"<p style='font-size:12px;color:#999'>{e}</p>"
+                     f"</div></body></html>",
+            )
 
         # 生成短期 session key，存入内存
         session_key = secrets.token_urlsafe(16)
