@@ -144,24 +144,35 @@ async def list_threads(limit: int = 50, offset: int = 0, agent_name: str | None 
         if not await _table_exists(conn, "checkpoints"):
             return []
 
-        where = "WHERE json_extract(metadata, '$.agent_name') = ?" if agent_name else ""
-        params = (agent_name, limit, offset) if agent_name else (limit, offset)
-
-        async with conn.execute(
-            f"""
+        if agent_name:
+            query = """
             SELECT thread_id,
                    json_extract(metadata, '$.agent_name') as agent_name,
                    MAX(json_extract(metadata, '$.updated_at')) as updated_at,
                    MIN(json_extract(metadata, '$.updated_at')) as created_at,
                    MAX(checkpoint_id) as latest_checkpoint_id
             FROM checkpoints
-            {where}
+            GROUP BY thread_id
+            HAVING agent_name = ?
+            ORDER BY updated_at DESC
+            LIMIT ? OFFSET ?
+            """
+            params: tuple = (agent_name, limit, offset)
+        else:
+            query = """
+            SELECT thread_id,
+                   json_extract(metadata, '$.agent_name') as agent_name,
+                   MAX(json_extract(metadata, '$.updated_at')) as updated_at,
+                   MIN(json_extract(metadata, '$.updated_at')) as created_at,
+                   MAX(checkpoint_id) as latest_checkpoint_id
+            FROM checkpoints
             GROUP BY thread_id
             ORDER BY updated_at DESC
             LIMIT ? OFFSET ?
-            """,
-            params,
-        ) as cursor:
+            """
+            params = (limit, offset)
+
+        async with conn.execute(query, params) as cursor:
             rows = await cursor.fetchall()
 
         threads = [
