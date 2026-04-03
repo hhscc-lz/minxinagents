@@ -3252,7 +3252,7 @@ class DeepAgentsApp(App):
 
         prefetched_history: list[MessageData] | None = None
         try:
-            self._update_status(f"Loading thread: {thread_id}")
+            self._update_status("正在加载历史会话...")
             prefetched_history = await self._fetch_thread_history_data(thread_id)
 
             # Clear conversation (similar to /clear, without creating a new thread)

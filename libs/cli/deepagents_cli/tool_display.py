@@ -155,28 +155,20 @@ def format_tool_display(tool_name: str, tool_args: dict) -> str:
 
     # Tool-specific formatting - show the most important argument(s)
     if tool_name in {"read_file", "write_file", "edit_file"}:
-        # File operations: show the primary file path argument (file_path or path)
-        path_value = tool_args.get("file_path")
-        if path_value is None:
-            path_value = tool_args.get("path")
-        if path_value is not None:
-            path_raw = strip_dangerous_unicode(str(path_value))
-            path = abbreviate_path(path_raw)
-            if path_raw != str(path_value):
-                path += _HIDDEN_CHAR_MARKER
-            return f"{prefix} {tool_name}({path})"
+        _LABEL = {"read_file": "读取文件", "write_file": "写入文件", "edit_file": "编辑文件"}
+        return f"{prefix} {_LABEL[tool_name]}"
 
     elif tool_name == "web_search":
         # Web search: show the query string
         if "query" in tool_args:
             query = _sanitize_display_value(tool_args["query"], max_length=100)
-            return f'{prefix} {tool_name}("{query}")'
+            return f'{prefix} 联网搜索("{query}")'
 
     elif tool_name == "grep":
         # Grep: show the search pattern
         if "pattern" in tool_args:
             pattern = _sanitize_display_value(tool_args["pattern"], max_length=70)
-            return f'{prefix} {tool_name}("{pattern}")'
+            return f'{prefix} 搜索文件("{pattern}")'
 
     elif tool_name == "execute":
         return f"{prefix} {_EXECUTE_LABEL}"
@@ -188,14 +180,14 @@ def format_tool_display(tool_name: str, tool_args: dict) -> str:
             path = abbreviate_path(path_raw)
             if path_raw != str(tool_args["path"]):
                 path += _HIDDEN_CHAR_MARKER
-            return f"{prefix} {tool_name}({path})"
-        return f"{prefix} {tool_name}()"
+            return f"{prefix} 列出目录({path})"
+        return f"{prefix} 列出目录"
 
     elif tool_name == "glob":
         # Glob: show the pattern
         if "pattern" in tool_args:
             pattern = _sanitize_display_value(tool_args["pattern"], max_length=80)
-            return f'{prefix} {tool_name}("{pattern}")'
+            return f'{prefix} 查找文件("{pattern}")'
 
     elif tool_name == "http_request":
         # HTTP: show method and URL
@@ -207,36 +199,39 @@ def format_tool_display(tool_name: str, tool_args: dict) -> str:
             url = _sanitize_display_value(tool_args["url"], max_length=80)
             parts.append(url)
         if parts:
-            return f"{prefix} {tool_name}({' '.join(parts)})"
+            return f"{prefix} 发送请求({' '.join(parts)})"
 
     elif tool_name == "fetch_url":
         # Fetch URL: show the URL being fetched
         if "url" in tool_args:
             url = _sanitize_display_value(tool_args["url"], max_length=80)
-            return f'{prefix} {tool_name}("{url}")'
+            return f'{prefix} 获取网页("{url}")'
 
     elif tool_name == "task":
         # Task: show the task description
         if "description" in tool_args:
             desc = _sanitize_display_value(tool_args["description"], max_length=100)
-            return f'{prefix} {tool_name}("{desc}")'
+            return f'{prefix} 子任务("{desc}")'
 
     elif tool_name == "export_data":
         return f"{prefix} 正在导出数据..."
 
+    elif tool_name == "upload_file":
+        return f"{prefix} 正在上传文件..."
+
     elif tool_name == "ask_user":
         if "questions" in tool_args and isinstance(tool_args["questions"], list):
             count = len(tool_args["questions"])
-            label = "question" if count == 1 else "questions"
-            return f"{prefix} {tool_name}({count} {label})"
+            return f"{prefix} 请求确认（{count} 项）"
 
     elif tool_name == "compact_conversation":
-        return f"{prefix} {tool_name}()"
+        return f"{prefix} 整理对话记录..."
 
     elif tool_name == "write_todos":
         if "todos" in tool_args and isinstance(tool_args["todos"], list):
             count = len(tool_args["todos"])
-            return f"{prefix} {tool_name}({count} 项任务)"
+            return f"{prefix} 制定分析计划（{count} 步）"
+        return f"{prefix} 制定分析计划..."
 
     # Fallback: generic formatting for unknown tools
     # Show all arguments in key=value format

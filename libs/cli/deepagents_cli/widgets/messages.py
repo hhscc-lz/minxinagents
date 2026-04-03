@@ -929,6 +929,11 @@ class ToolCallMessage(Vertical):
         Returns:
             FormattedOutput with file content and optional truncation info.
         """
+        stripped = output.strip()
+        # write_file / edit_file return "Updated file /path" or "Created file /path"
+        if stripped.startswith("Updated file ") or stripped.startswith("Created file "):
+            return FormattedOutput(content="[green]✓ 已完成[/green]")
+
         lines = output.split("\n")
         max_lines = 4 if is_preview else len(lines)
 

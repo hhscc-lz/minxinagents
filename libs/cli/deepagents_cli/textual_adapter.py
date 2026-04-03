@@ -782,10 +782,7 @@ async def execute_task_textual(
                                     assistant_message_by_namespace,
                                 )
                                 pending_text_by_namespace[ns_key] = ""
-                            if record.diff:
-                                await adapter._mount_message(
-                                    DiffMessage(record.diff, record.display_path)
-                                )
+                            # DiffMessage display suppressed for end-user cleanliness
                         continue
 
                     # Extract token usage (before content_blocks check
