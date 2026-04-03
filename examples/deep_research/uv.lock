@@ -663,7 +663,7 @@ requires-dist = [
     { name = "jupyter", specifier = ">=1.0.0" },
     { name = "langchain-anthropic", specifier = ">=1.0.3" },
     { name = "langchain-google-genai", specifier = ">=3.1.0" },
-    { name = "langchain-openai", specifier = ">=1.0.2" },
+    { name = "langchain-openai", specifier = ">=1.0.3" },
     { name = "langchain-tavily", specifier = ">=0.2.13" },
     { name = "langgraph-cli", extras = ["inmem"], specifier = ">=0.1.55" },
     { name = "markdownify", specifier = ">=1.2.0" },
